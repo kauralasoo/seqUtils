@@ -46,3 +46,12 @@ zScoreNormalize <- function(matrix){
   matrix = matrix / apply(matrix, 1, sd)
   return(matrix)
 }
+
+performPCA <- function(matrix, design){
+  #Perform PCA of gene expression matrix add experimental design metadata to the results
+  pca = prcomp(t(matrix))
+  pca_matrix = as.data.frame(pca$x) %>% 
+    dplyr::mutate(sample_id = rownames(pca$x)) %>%
+    dplyr::left_join(design, by = "sample_id")
+  return(list(pca_matrix = pca_matrix, pca_object = pca))
+}
