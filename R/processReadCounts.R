@@ -21,6 +21,14 @@ calculateTPM <- function(counts_matrix, lengths, selected_genes = NULL, fragment
   return(tpm)
 }
 
+calculateCQN <- function(counts_matrix, gene_metadata){
+  #Normalize read counts using the CQN method.
+  expression_cqn = cqn(counts = counts_matrix[gene_metadata$gene_id,], x = gene_metadata$percentage_gc_content, 
+                       lengths = gene_metadata$length, verbose = TRUE)
+  expression_norm = expression_cqn$y + expression_cqn$offset
+  return(expression_norm)
+}
+
 loadCounts <- function(sample_dir, sample_names, counts_suffix = ".counts.txt" ){
   #Load featureCounts output into R
   matrix = c()
@@ -54,4 +62,72 @@ performPCA <- function(matrix, design, ...){
     dplyr::mutate(sample_id = rownames(pca$x)) %>%
     dplyr::left_join(design, by = "sample_id")
   return(list(pca_matrix = pca_matrix, pca_object = pca))
+}
+
+calculateMean <- function(matrix, design, factor, sample_id_col = "sample_id"){
+  #Calculate the mean value in matrix over all possible factor values.
+  
+  #If the factor is not a factor then make it a factor.
+  if(!is.factor(design[,factor])){
+    design[,factor] = factor(design[,factor])
+  }
+  
+  #Set sample_id column as rownames
+  rownames(design) = design[,sample_id_col]
+  factor = design[,factor]
+  levs = levels(factor)
+  result = c()
+  for (lev in levs){
+    filter = factor == lev
+    samples = rownames(design[filter,])
+    mat = matrix[,samples]
+    mat = rowMeans(mat)
+    result = cbind(result, mat)
+  }
+  colnames(result) = levs
+  return(data.frame(result))
+}
+
+plotGene <- function(gene_id, matrix, design, gene_metadata, colors = c("#d95f02","#1b9e77","#7570b3")){
+  #Plot the expression values of each gene in different conditions
+  matrix = matrix[,match(rownames(design), colnames(matrix))]
+  gene_expression = matrix[gene_id,]
+  print(gene_expression)
+  design$expression = as.numeric(gene_expression)
+  gene_name = as.vector(gene_metadata[gene_metadata$gene_id == gene_id,]$gene_name)
+  
+  #Plot results
+  plot = ggplot(design, aes(x = condition_name, y = expression)) + 
+    geom_boxplot(outlier.shape = NA) + 
+    geom_jitter(position = position_jitter(width = .1)) + 
+    ylab(expression(paste(Log[2], " expression"))) + 
+    ggtitle(gene_name) +
+    #scale_fill_manual(values = colors) + 
+    theme(legend.position="none", text = element_text(size=20), axis.text.x = element_text(angle = 20), axis.title.x = element_blank())
+  return(plot)
+}
+
+filterDESeqResults <- function(results,gene_metadata, min_padj = 0.01, min_fc = 1, biotype_filter = NULL){
+  #Add gene name to the DESeq result and filter out up and downregulated genes.
+  
+  #Construct a results table
+  result_table = results %>% 
+    data.frame() %>% 
+    dplyr::mutate(gene_id = rownames(results)) %>% 
+    tbl_df() %>% 
+    dplyr::left_join(gene_metadata, by = "gene_id") %>% 
+    dplyr::arrange(padj)
+  
+  #Find up and down-regulated genes
+  up_genes = dplyr::filter(result_table, padj < min_padj, log2FoldChange > min_fc) %>% 
+    arrange(-log2FoldChange)
+  down_genes = dplyr::filter(result_table, padj < min_padj, log2FoldChange < -min_fc) %>% 
+    arrange(log2FoldChange)
+  
+  #Filter up and down-regulated genes by biotype
+  if(!is.null(biotype_filter)){
+    up_genes = dplyr::filter(up_genes, gene_biotype == biotype_filter)
+    down_genes = dplyr::filter(down_genes, gene_biotype == biotype_filter)
+  }
+  return(list(up_genes = up_genes, down_genes = down_genes, results_table = result_table))
 }

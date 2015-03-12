@@ -1,6 +1,6 @@
 vcfToMatrix <- function(file, genome){
   #Read vcf file into R and convert it onto matrix of SNP positions and matrix of genotypes
-  genotypes_vcf = readVcf(file, genome)
+  genotypes_vcf = VariantAnnotation::readVcf(file, genome)
   
   # Extract SNP positions from the VCF file
   variant_granges = rowData(genotypes_vcf)
