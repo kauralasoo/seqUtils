@@ -19,3 +19,17 @@ constructGeneData <- function(gene_id, expression_matrix, design_matrix, metadat
   return(model_data)
 }
 
+estimateVarianceExplained <- function(model_data, model_function){
+  #Apply an lmer4 model (model_function) to a dataset and report the proportion of variance explained by each component.
+  #Set a flag to idicate if the model converged or not.
+  tryCatch({
+    var_exp = model_function(model_data) %>% varianceExplained()
+    var_exp$converged = TRUE
+    return(var_exp)
+  },
+  warning = function(c){
+    var_exp = model_function(model_data) %>% varianceExplained() %>% suppressWarnings()
+    var_exp$converged = FALSE
+    return(var_exp)
+  })
+}
