@@ -63,6 +63,19 @@ meanVarianceWithinBins <- function(binned_table, binning_variable = "residual_bi
   return(var_summarised)
 }
 
+maximumFactorPerGene <- function(variance_table){
+  #For each gene, identify the component that explains the most variance for that gene
+  factors = setdiff(colnames(variance_table), "gene_id")
+  
+  maximum_factor = tidyr::gather_(variance_table, "component_max", "var_explained_max", factors) %>% 
+    group_by(gene_id) %>% 
+    arrange(-var_explained_max) %>% 
+    filter(row_number() == 1)
+  
+  return(maximum_factor)
+}
+
+
 plotBinnedVariance <- function(var_summarised){
   #Make stacked barplot of the variance explained
   plot = ggplot(var_summarised, aes(x = residual_bin, y = var_explained, fill = component)) + 
