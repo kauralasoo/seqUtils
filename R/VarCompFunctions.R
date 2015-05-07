@@ -33,3 +33,41 @@ estimateVarianceExplained <- function(model_data, model_function){
     return(var_exp)
   })
 }
+
+binGenesByResidual <- function(variance_table, n_bins = 20){
+  #Bin genes by the proportion of variance explained by the residual
+  var_table = dplyr::arrange(variance_table, residual) %>% 
+    dplyr::mutate(residual_bin = n_bins-floor(residual*n_bins)) %>%
+    dplyr::mutate(residual_bin = as.character(105-residual_bin*5)) %>%
+    dplyr::mutate(residual_bin = factor(residual_bin, levels = rev(unique(residual_bin))))
+  return(var_table)
+}
+
+meanVarianceWithinBins <- function(binned_table, binning_variable = "residual_bin"){
+  #Caluclate mean variance within bins and add another bin for total variance
+  factors = setdiff(colnames(binned_table), c("gene_id", binning_variable))
+  var_gathered = tidyr::gather_(binned_table, "component", "var_explained", factors)
+  
+  #Calculate mean variance within bins
+  var_summarised = group_by_(var_gathered, binning_variable, "component") %>% 
+    dplyr::summarise(var_explained = mean(var_explained))
+  
+  #Calcualate total variance explaiend by each factor
+  var_total = group_by_(var_gathered, "component") %>%
+    dplyr::summarise(var_explained = mean(var_explained)) %>%
+    dplyr::transmute(bin = "Total", component, var_explained)
+  var_total = dplyr::rename_(var_total, .dots = setNames(list(quote(bin)), binning_variable))
+            
+  #Bind the two together
+  var_summarised = rbind(var_summarised, var_total)
+  return(var_summarised)
+}
+
+plotBinnedVariance <- function(var_summarised){
+  #Make stacked barplot of the variance explained
+  plot = ggplot(var_summarised, aes(x = residual_bin, y = var_explained, fill = component)) + 
+    geom_bar(stat="identity") +
+    ylab("% variance explained") +
+    xlab("Residual variance bin")
+  return(plot)
+}
