@@ -3,7 +3,7 @@ constructDesignMatrix_SL1344 <- function(sample_ids){
   
   design = data.frame(sample_id = sample_ids, stringsAsFactors = FALSE)
   condition_names = data.frame(condition = c("A","B","C","D"), 
-                               condition_name = c("naive", "IFNg", "SL1344", "IFNg+SL1344"), 
+                               condition_name = c("naive", "IFNg", "SL1344", "IFNg_SL1344"), 
                                stringsAsFactors = FALSE)
   design = design %>% 
     tidyr::separate(sample_id, into = c("donor", "condition", "replicate"), extra = "drop", remove = FALSE) %>%
