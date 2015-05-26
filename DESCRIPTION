@@ -5,6 +5,5 @@ Authors@R: person("First", "Last", , "first.last@example.com", role = c("aut", "
 Description: What the package does (one paragraph)
 Depends: R (>= 3.1.2)
 License: What license is it under?
-Imports:
-    tidyr
+Imports: tidyr, VariantAnnotation
 LazyData: true

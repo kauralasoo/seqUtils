@@ -12,7 +12,7 @@ vcfToMatrix <- function(file, genome){
     dplyr::rename(chr = seqnames, pos = start)
   
   #Extract genotype matrix
-  genotypes = geno(genotypes_vcf)$GT
+  genotypes = VariantAnnotation::geno(genotypes_vcf)$GT
   genotypes[genotypes == "1/1"] = 2
   genotypes[genotypes == "0/1"] = 1
   genotypes[genotypes == "1/0"] = 1
@@ -23,41 +23,43 @@ vcfToMatrix <- function(file, genome){
   return(list(snpspos = snpspos, genotypes = genotypes))
 }
 
-filterEQTLs <- function(data_frame){
+filterEQTLs <- function(data_frame, gene_id_name_map){
   dat = dplyr::filter(data_frame, FDR < 0.1) %>% 
-    dplyr::group_by(gene) %>% 
+    dplyr::rename(gene_id = gene, snp_id = snps) %>%
+    dplyr::group_by(gene_id) %>% 
     dplyr::arrange(pvalue) %>% 
     dplyr::filter(row_number() == 1) %>%
     dplyr::ungroup() %>% 
-    dplyr::arrange(pvalue)
+    dplyr::arrange(pvalue) %>%
+    dplyr::left_join(gene_id_name_map, by = "gene_id")
   return(dat)
 }
 
-plotEQTL <- function(selected_gene_id, genotype_id, eqtl_dataset){
+plotEQTL <- function(selected_gene_id, genotype_id, expression_dataset, genotype_dataset, line_metadata){
   
   #Extraxt gene_name
-  gene_name = dplyr::filter(eqtl_dataset$gene_metadata, gene_id == selected_gene_id)$gene_name
+  gene_name = dplyr::filter(expression_dataset$gene_metadata, gene_id == selected_gene_id)$gene_name
   print(gene_name)
   
   #extract genotypes
-  geno_vector = eqtl_dataset$genotypes[genotype_id,]
+  geno_vector = genotype_dataset$genotypes[genotype_id,]
   genotype_df = data.frame(genotype_id = names(geno_vector), genotype_value = as.character(geno_vector), stringsAsFactors = FALSE, row.names = NULL)
   
   #expression
-  expression_vector = eqtl_dataset$exprs_cqn[selected_gene_id,]
+  expression_vector = expression_dataset$exprs_cqn[selected_gene_id,]
   exprs_df = data.frame(sample_id = names(expression_vector), norm_exp = expression_vector, stringsAsFactors = FALSE, row.names = NULL)
   
   #Map genotype ids to donor names
-  donor_genotype_map = dplyr::select(eqtl_dataset$line_metadata, donor, genotype_id) %>% unique()
+  donor_genotype_map = dplyr::select(line_metadata, donor, genotype_id) %>% unique()
   
-  plot_df = dplyr::left_join(eqtl_dataset$design, donor_genotype_map, by ="donor") %>%
+  plot_df = dplyr::left_join(expression_dataset$design, donor_genotype_map, by ="donor") %>%
     left_join(exprs_df, by = "sample_id") %>% 
     left_join(genotype_df, by = "genotype_id") %>%
-    dplyr::mutate(condition_name = factor(plot_df$condition_name, levels = c("naive","IFNg", "SL1344", "IFNg+SL1344")))
+    dplyr::mutate(condition_name = factor(condition_name, levels = c("naive","IFNg", "SL1344", "IFNg_SL1344")))
   
   plot = ggplot(plot_df, aes(x = genotype_value, y = norm_exp)) + 
     facet_wrap(~ condition_name) + 
-    geom_boxplot() + 
+    geom_boxplot(outlier.shape = NA) + 
     geom_jitter(position = position_jitter(width = .1)) + 
     ylab("Normalized expression") +
     xlab(genotype_id) + 
@@ -66,14 +68,14 @@ plotEQTL <- function(selected_gene_id, genotype_id, eqtl_dataset){
   return(plot)
 }
 
-makeMultiplePlots <- function(snps_df, eqtl_dataset){
+makeMultiplePlots <- function(snps_df, expression_dataset, genotype_dataset, line_metadata){
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
   for(i in 1:nrow(snps_df)){
     gene_id = snps_df[i,]$gene_id
-    genotype_id = snps_df[i,]$genotype_id
+    snp_id = snps_df[i,]$snp_id
     print(gene_id)
-    plot = plotEQTL(gene_id, genotype_id, eqtl_dataset)
+    plot = plotEQTL(gene_id, snp_id, expression_dataset, genotype_dataset, line_metadata)
     result[[gene_id]] = plot 
   }
   return(result)
