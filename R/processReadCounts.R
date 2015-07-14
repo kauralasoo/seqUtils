@@ -135,3 +135,17 @@ filterDESeqResults <- function(results,gene_metadata, min_padj = 0.01, min_fc = 
   }
   return(list(up_genes = up_genes, down_genes = down_genes, results_table = result_table))
 }
+
+calculateNormFactors <- function(counts_matrix, method = "RLE", output = "rasqual"){
+  #Calculate norm factors for a counts matrix
+  dge = edgeR::DGEList(counts = counts_matrix)
+  dge = edgeR::calcNormFactors(dge)
+  sample_info = dge$samples[,-1]
+  if (output == "rasqual"){
+    size_matrix = matrix(rep(sample_info$norm.factors, nrow(counts_matrix)), nrow = nrow(counts_matrix), byrow = TRUE)
+    rownames(size_matrix) = rownames(counts_matrix)
+    return(size_matrix)
+  }else{
+    return(sample_info)
+  }
+}
