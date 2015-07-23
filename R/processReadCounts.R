@@ -139,7 +139,7 @@ filterDESeqResults <- function(results,gene_metadata, min_padj = 0.01, min_fc = 
 calculateNormFactors <- function(counts_matrix, method = "RLE", output = "rasqual"){
   #Calculate norm factors for a counts matrix
   dge = edgeR::DGEList(counts = counts_matrix)
-  dge = edgeR::calcNormFactors(dge)
+  dge = edgeR::calcNormFactors(dge, method = method)
   sample_info = dge$samples[,-1]
   if (output == "rasqual"){
     size_matrix = matrix(rep(sample_info$norm.factors, nrow(counts_matrix)), nrow = nrow(counts_matrix), byrow = TRUE)
