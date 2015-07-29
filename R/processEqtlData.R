@@ -4,6 +4,7 @@ qtlProcessExpression <- function(sample_meta, exprs_cqn, remove_n_pcs = 4, new_c
   condition_data = exprs_cqn[,sample_meta$sample_id]
   
   #Rename the columns with donor id
+  sample_meta = as.data.frame(sample_meta) #Ensure that its a data.frame
   colnames(condition_data) = sample_meta[,new_column_names]
   
   #Remove PCs
@@ -18,7 +19,8 @@ qtlProcessExpression <- function(sample_meta, exprs_cqn, remove_n_pcs = 4, new_c
 }
 
 qtlProcessGenotypes <- function(sample_meta, genotypes, new_column_names = "donor"){
-  gt = vcf_file$genotypes[,sample_meta$genotype_id]
+  gt = genotypes[,sample_meta$genotype_id]
+  sample_meta = as.data.frame(sample_meta) #Ensure that its a data.frame
   colnames(gt) = sample_meta[,new_column_names]
   return(gt)
 }
