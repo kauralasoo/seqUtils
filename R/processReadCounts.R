@@ -171,3 +171,31 @@ loadIntronEventCounts <- function(sample_dir, sample_names, counts_suffix = ".in
   colnames(matrix) = c("gene_id", "event_id", sample_names)
   return(matrix)
 }
+
+regressPrinicpalComponents <- function(data_matrix, n_pcs){
+  #Regress out first n principal components from the data matrix
+  if(n_pcs > 0){
+    pca = prcomp(t(data_matrix))
+    pca_explained = (pca$x[,1:n_pcs] %*% t(pca$rotation[,1:n_pcs])) %>%
+      scale(center = -1 * pca$center, scale = FALSE) %>% t()
+    result = data_matrix - pca_explained
+  } else{
+    result = data_matrix
+  }
+  return(result)
+}
+
+filterExpressionDataset <- function(dataset, sample_ids = NULL, gene_ids = NULL){
+  #Filter expression dataset by sample_ids or gene_ids
+  if(!is.null(sample_ids)){
+    dataset$design = dataset$design[sample_ids,]
+    dataset$exprs_cqn = dataset$exprs_cqn[,sample_ids]
+    dataset$exprs_counts = dataset$exprs_counts[,sample_ids]
+  }
+  if(!is.null(gene_ids)){
+    dataset$exprs_cqn = dataset$exprs_cqn[gene_ids,]
+    dataset$exprs_counts = dataset$exprs_counts[gene_ids,]
+    dataset$gene_metadata = dplyr::filter(dataset$gene_metadata, gene_id %in% gene_ids)
+  }
+  return(dataset)
+}

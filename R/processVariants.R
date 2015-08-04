@@ -139,7 +139,7 @@ testInteraction <- function(gene_id, genotype_id, expression_dataset, genotype_d
   genotype_ids = dplyr::select(line_metadata, donor, replicate, genotype_id)
   geno = genotype_dataset$genotypes[genotype_id,]
   geno_df = data_frame(genotype_id = names(geno), genotype = geno)
-  
+    
   exprs = expression_dataset$exprs_cqn[gene_id,]
   exprs_df = data_frame(sample_id = names(exprs), expression = exprs)
   
