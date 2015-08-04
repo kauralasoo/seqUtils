@@ -149,3 +149,25 @@ calculateNormFactors <- function(counts_matrix, method = "RLE", output = "rasqua
     return(sample_info)
   }
 }
+
+loadIntronEventCounts <- function(sample_dir, sample_names, counts_suffix = ".intron_events.txt", sub_dir = TRUE){
+  #Load featureCounts output into R
+  matrix = c()
+  for (i in c(1:length(sample_names))){
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], counts_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], counts_suffix, sep = ""))      
+    }
+    print(sample_names[i])
+    table = readr::read_tsv(path, col_names = FALSE, col_types = "ccc")
+    if (i == 1){
+      matrix = table
+    }
+    else{
+      matrix = cbind(matrix, table[,3])
+    }
+  }
+  colnames(matrix) = c("gene_id", "event_id", sample_names)
+  return(matrix)
+}

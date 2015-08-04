@@ -75,3 +75,61 @@ extractExonsStartEnd <- function(gr_list, gene_tx_map){
   return(result)
   
 }
+
+constructIntronExonDf <- function(gene_id, gene_data, intron_gap = 10, type = "intron"){
+  #Return data frames with intron and exon coordinates and names
+  # exon_starts - comma-separated string of exon start coords.
+  # exon_ends - comma-separated string of exon end coords.
+  
+  #extract gene data
+  gene_record = gene_data[gene_data$gene_id == gene_id,]
+  exon_starts = gene_record$exon_starts
+  exon_ends = gene_record$exon_ends
+  seqname = gene_record$chr
+  strand = gene_record$strand
+  
+  #Extract cooridnates from string
+  exon_start_coords = as.numeric(unlist(strsplit(exon_starts, ",")))
+  exon_end_coords = as.numeric(unlist(strsplit(exon_ends, ",")))
+
+  #Construct intron data frame
+  if (type == "intron"){
+    if(length(exon_start_coords) > 1){ #Only genes with more than one exon can have introns
+      intron_df = data_frame(start = exon_end_coords[1:length(exon_end_coords)-1] + intron_gap +1,
+                             end = exon_start_coords[2:length(exon_start_coords)] - intron_gap -1,
+                             strand = strand,
+                             seqnames = seqname,
+                             Parent = gene_id,
+                             type = "intron",
+                             gene_id = gene_id)
+      intron_df$ID = paste(gene_id, "intron", seq(1,nrow(intron_df)), sep = "_")
+      return(intron_df)
+    } else{
+      return(NULL)
+    } 
+  } else if (type == "exon"){   #Construct exon data.frame
+    exon_df = data_frame(start = exon_start_coords, 
+                         end = exon_end_coords,
+                         strand = strand,
+                         seqnames = seqname,
+                         Parent = gene_id,
+                         type = "exon",
+                         gene_id = gene_id)
+    exon_df$ID = paste(gene_id, "exon", seq(1,nrow(exon_df)), sep = "_")
+    return(exon_df)
+  }
+}
+
+dataFrameToGRanges <- function(df){
+  #Convert a data.frame into a GRanges object
+  
+  gr = GRanges(seqnames = df$seqnames, 
+               ranges = IRanges(start = df$start, end = df$end),
+               strand = df$strand)
+  
+  #Add metadata
+  meta = dplyr::select(df, -start, -end, -strand, -seqnames)
+  elementMetadata(gr) = meta
+  
+  return(gr)
+}
