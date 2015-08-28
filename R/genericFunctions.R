@@ -5,15 +5,13 @@ idVectorToList <- function(id_vector){
   return(id_list)
 }
 
-loadVerifyBamID <- function(sample_names, sample_dir, suffix = ".verifyBamID.bestSM"){
-  matrix = c()
-  for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], suffix, sep = ""))
-    table = read.table(path, comment.char = "", sep ="\t", header = TRUE) %>%
-      dplyr::select(CHIP_ID, FREEMIX) %>%
-      dplyr::mutate(sample_id = sample_names[i]) %>%
-      dplyr::rename(genotype_id = CHIP_ID, freemix = FREEMIX)
-    matrix = rbind(matrix, table)
+listUnion <- function(granges_list){
+  #Calculated the union of a GRangesList object
+  union_obj = granges_list[[1]]
+  if(length(granges_list) > 1){
+    for(i in 2:length(granges_list)){
+      union_obj = GenomicRanges::union(union_obj, granges_list[[i]]) 
+    } 
   }
-  return(matrix)
+  return(union_obj)
 }

@@ -1,15 +1,3 @@
-listUnion <- function(granges_list){
-  #Calculated the union of a GRangesList object
-  union_obj = granges_list[[1]]
-  if(length(granges_list) > 1){
-    for(i in 2:length(granges_list)){
-      union_obj = GenomicRanges::union(union_obj, granges_list[[i]]) 
-    } 
-  }
-  return(union_obj)
-}
-
-
 reduceDataFrameGRanges <- function(df){
   #Convert data frame into a a Granges object and reduce overlapping exons, then convert back to df
   
