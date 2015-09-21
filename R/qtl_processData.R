@@ -20,6 +20,11 @@ qtlProcessGenotypes <- function(sample_meta, genotypes, new_column_names = "dono
 runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL){
   #Run matrixeQTL on a prepared data set
   
+  #Perform some sanity checks
+  if(!all(colnames(exp_data) == colnames(geno_data))){
+    stop("Column names of expression and genotype data are not equal.")
+  }
+  
   #Construct a SlicedData object of the expression data
   expression_sliced = SlicedData$new()
   expression_sliced$CreateFromMatrix(exp_data)
@@ -33,6 +38,9 @@ runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NU
   #Add covariates
   cvrt = SlicedData$new()
   if (!is.null(covariates)){
+    if(!all(colnames(exp_data) == colnames(covariates))){
+      stop("Column names of expression and covariates data are not equal.")
+    }
     cvrt$CreateFromMatrix(covariates)
     cvrt$ResliceCombined()
   }
