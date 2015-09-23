@@ -1,20 +1,11 @@
-qtlProcessExpression <- function(sample_meta, exprs_cqn, new_column_names = "donor"){
+extractSubset <- function(sample_meta, data, old_column_names = "sample_id", new_column_names = "donor"){
+  #Extract subset of columns from a data.frame and rename column names
   
-  #Keep only sample that are in the metadata column
-  condition_data = exprs_cqn[,sample_meta$sample_id]
+  sample_meta = as.data.frame(sample_meta)               #Ensure that its a data.frame
+  subset_data = data[,sample_meta[,old_column_names]]    #Keep only sample that are in the metadata column
+  colnames(subset_data) = sample_meta[,new_column_names] #Rename the columns with donor id
   
-  #Rename the columns with donor id
-  sample_meta = as.data.frame(sample_meta) #Ensure that its a data.frame
-  colnames(condition_data) = sample_meta[,new_column_names]
-  
-  return(condition_data)
-}
-
-qtlProcessGenotypes <- function(sample_meta, genotypes, new_column_names = "donor"){
-  gt = genotypes[,sample_meta$genotype_id]
-  sample_meta = as.data.frame(sample_meta) #Ensure that its a data.frame
-  colnames(gt) = sample_meta[,new_column_names]
-  return(gt)
+  return(subset_data)
 }
 
 runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL){
