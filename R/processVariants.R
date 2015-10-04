@@ -4,8 +4,7 @@ vcfToMatrix <- function(file, genome){
   
   # Extract SNP positions from the VCF file
   variant_granges = GenomicRanges::rowData(genotypes_vcf)
-  elementMetadata(variant_granges) = c()
-  print(head(variant_granges))
+  GenomicRanges::elementMetadata(variant_granges) = c()
   snp_positions = GenomicRanges::as.data.frame(variant_granges)
   snpspos = dplyr::mutate(snp_positions, snpid = rownames(snp_positions)) %>% 
     dplyr::select(snpid, seqnames, start) %>%
