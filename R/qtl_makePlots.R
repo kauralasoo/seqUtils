@@ -89,10 +89,22 @@ makeMultiplePlots_acLDL <- function(snps_df, expression_dataset, genotype_datase
   return(result)
 }
 
+#' Save a list of ggplot2 plots into a folder
+#'
+#' File name is extracted automatically from the plot title.
+#' 
+#' @param plot_list List of ggplot2 objects.
+#' @param path Path to the output directory, created automatically if does not exist.
+#' @param width Width of the plot.
+#' @param height Height of the plot.
+#' @return None
+#' @author Kaur Alasoo
+#' @export 
 savePlots <- function(plot_list, path, width, height){
   #Save a list of plots into the folder specified by path
   for (plot in plot_list){
     gene_name = plot$labels$title
+    if (!dir.exists(path)){ dir.create(path) } #Create dir if not there
     file_name = file.path(path, paste(gene_name, ".pdf", sep = ""))
     ggsave(file_name, plot, width = width, height = height)
   }
