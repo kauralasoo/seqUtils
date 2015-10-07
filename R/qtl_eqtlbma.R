@@ -43,6 +43,9 @@ saveEqtlbmaMatrices <- function(data_list, output_dir, file_suffix = "exression"
 #' @export 
 saveEqtlbmaData <- function(eqtl_data_list, output_dir, project_root){
   
+  #If the output dir does not exist then make it
+  if (!dir.exists(output_dir)){ dir.create(output_dir) } #Create dir if not there
+  
   #Save gene coords into a bed file
   genepos_path = file.path(output_dir, "gene_coords.bed")
   write.table(eqtl_data_list$genepos, genepos_path, sep ="\t", quote = FALSE, row.names = FALSE, col.names = FALSE)

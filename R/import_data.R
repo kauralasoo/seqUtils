@@ -162,10 +162,11 @@ loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broa
 #' @export 
 vcfToMatrix <- function(file, genome){
   
+  #Import VCF into GRanges object
   genotypes_vcf = VariantAnnotation::readVcf(file, genome)
   
   # Extract SNP positions from the VCF file
-  variant_granges = GenomicRanges::rowData(genotypes_vcf)
+  variant_granges = GenomicRanges::rowRanges(genotypes_vcf)
   GenomicRanges::elementMetadata(variant_granges) = c()
   snp_positions = GenomicRanges::as.data.frame(variant_granges)
   snpspos = dplyr::mutate(snp_positions, snpid = rownames(snp_positions)) %>% 
@@ -174,10 +175,10 @@ vcfToMatrix <- function(file, genome){
   
   #Extract genotype matrix
   genotypes = VariantAnnotation::geno(genotypes_vcf)$GT
-  genotypes[genotypes == "1/1"] = 2
-  genotypes[genotypes == "0/1"] = 1
-  genotypes[genotypes == "1/0"] = 1
-  genotypes[genotypes == "0/0"] = 0
+  genotypes[genotypes == "1|1"] = 2
+  genotypes[genotypes == "0|1"] = 1
+  genotypes[genotypes == "1|0"] = 1
+  genotypes[genotypes == "0|0"] = 0
   genotypes[genotypes == "."] = "NA"
   mode(genotypes) = "numeric"
   
