@@ -150,3 +150,36 @@ loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broa
   }
   return(result)
 }
+
+#' Import VCF file to matrix
+#'
+#' Read vcf file into R and convert it into a matrix of SNP positions and matrix of genotypes
+#' 
+#' @param file Path to the VCF file.
+#' @param genome Name of the refernece genome.
+#' @return List containint snpspos and genotypes matrix.
+#' @author Kaur Alasoo
+#' @export 
+vcfToMatrix <- function(file, genome){
+  
+  genotypes_vcf = VariantAnnotation::readVcf(file, genome)
+  
+  # Extract SNP positions from the VCF file
+  variant_granges = GenomicRanges::rowData(genotypes_vcf)
+  GenomicRanges::elementMetadata(variant_granges) = c()
+  snp_positions = GenomicRanges::as.data.frame(variant_granges)
+  snpspos = dplyr::mutate(snp_positions, snpid = rownames(snp_positions)) %>% 
+    dplyr::select(snpid, seqnames, start) %>%
+    dplyr::rename(chr = seqnames, pos = start)
+  
+  #Extract genotype matrix
+  genotypes = VariantAnnotation::geno(genotypes_vcf)$GT
+  genotypes[genotypes == "1/1"] = 2
+  genotypes[genotypes == "0/1"] = 1
+  genotypes[genotypes == "1/0"] = 1
+  genotypes[genotypes == "0/0"] = 0
+  genotypes[genotypes == "."] = "NA"
+  mode(genotypes) = "numeric"
+  
+  return(list(snpspos = snpspos, genotypes = genotypes))
+}
