@@ -160,7 +160,7 @@ loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broa
 #' @return List containint snpspos and genotypes matrix.
 #' @author Kaur Alasoo
 #' @export 
-vcfToMatrix <- function(file, genome){
+vcfToMatrix <- function(file, genome, genotype_sep = "|"){
   
   #Import VCF into GRanges object
   genotypes_vcf = VariantAnnotation::readVcf(file, genome)
@@ -175,10 +175,11 @@ vcfToMatrix <- function(file, genome){
   
   #Extract genotype matrix
   genotypes = VariantAnnotation::geno(genotypes_vcf)$GT
-  genotypes[genotypes == "1|1"] = 2
-  genotypes[genotypes == "0|1"] = 1
-  genotypes[genotypes == "1|0"] = 1
-  genotypes[genotypes == "0|0"] = 0
+  print(head(genotypes))
+  genotypes[genotypes == paste("1",genotype_sep, "1", sep = "")] = 2
+  genotypes[genotypes == paste("0",genotype_sep, "1", sep = "")] = 1
+  genotypes[genotypes == paste("1",genotype_sep, "0", sep = "")] = 1
+  genotypes[genotypes == paste("0",genotype_sep, "0", sep = "")] = 0
   genotypes[genotypes == "."] = "NA"
   mode(genotypes) = "numeric"
   
