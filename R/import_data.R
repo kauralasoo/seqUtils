@@ -151,37 +151,30 @@ loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broa
   return(result)
 }
 
-#' Import VCF file to matrix
+#' Import genotypes in GDS file to a matrix
 #'
-#' Read vcf file into R and convert it into a matrix of SNP positions and matrix of genotypes
+#' Open GDS file (created with SNPRelate::snpgdsVCF2GDS) into R and convert it into a matrix of 
+#' variant positions and matrix of allele dosage (0,1,2)
 #' 
-#' @param file Path to the VCF file.
-#' @param genome Name of the refernece genome.
+#' @param file Path to the GDS file.
 #' @return List containint snpspos and genotypes matrix.
 #' @author Kaur Alasoo
 #' @export 
-vcfToMatrix <- function(file, genome, genotype_sep = "|"){
+gdsToMatrix <- function(gds_file){
   
-  #Import VCF into GRanges object
-  genotypes_vcf = VariantAnnotation::readVcf(file, genome)
+  #Extract genotypes
+  gds <- GWASTools::GdsGenotypeReader("CD14_cis_region1.gds")
+  genotypes = GWASTools::getGenotype(gds)
+  sample_ids = GWASTools::getVariable(gds, "sample.id")
+  snp_ids = GWASTools::getVariable(gds, "snp.rs.id")
+  colnames(genotypes) = sample_ids
+  rownames(genotypes) = snp_ids
   
-  # Extract SNP positions from the VCF file
-  variant_granges = GenomicRanges::rowRanges(genotypes_vcf)
-  GenomicRanges::elementMetadata(variant_granges) = c()
-  snp_positions = GenomicRanges::as.data.frame(variant_granges)
-  snpspos = dplyr::mutate(snp_positions, snpid = rownames(snp_positions)) %>% 
-    dplyr::select(snpid, seqnames, start) %>%
-    dplyr::rename(chr = seqnames, pos = start)
-  
-  #Extract genotype matrix
-  genotypes = VariantAnnotation::geno(genotypes_vcf)$GT
-  print(head(genotypes))
-  genotypes[genotypes == paste("1",genotype_sep, "1", sep = "")] = 2
-  genotypes[genotypes == paste("0",genotype_sep, "1", sep = "")] = 1
-  genotypes[genotypes == paste("1",genotype_sep, "0", sep = "")] = 1
-  genotypes[genotypes == paste("0",genotype_sep, "0", sep = "")] = 0
-  genotypes[genotypes == "."] = "NA"
-  mode(genotypes) = "numeric"
+  #Extract SNP coordinates
+  snpspos = data_frame(snpid = GWASTools::getVariable(gds, "snp.rs.id"), 
+             chr = GWASTools::getVariable(gds, "snp.chromosome"), 
+             pos = GWASTools::getVariable(gds, "snp.position"))
+  GWASTools::close(gds)
   
   return(list(snpspos = snpspos, genotypes = genotypes))
 }
