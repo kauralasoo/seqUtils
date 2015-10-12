@@ -163,7 +163,7 @@ loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broa
 gdsToMatrix <- function(gds_file){
   
   #Extract genotypes
-  gds <- GWASTools::GdsGenotypeReader("CD14_cis_region1.gds")
+  gds <- GWASTools::GdsGenotypeReader(gds_file)
   genotypes = GWASTools::getGenotype(gds)
   sample_ids = GWASTools::getVariable(gds, "sample.id")
   snp_ids = GWASTools::getVariable(gds, "snp.rs.id")
