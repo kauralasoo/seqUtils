@@ -8,7 +8,20 @@ extractSubset <- function(sample_meta, data, old_column_names = "sample_id", new
   return(subset_data)
 }
 
-runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL){
+#' A wrapper around MatrixeQTL
+#'
+#' Prepares SlicedData objects of expression data, genotypes and covariates 
+#' and then runs MatrixeQTL on the data.
+#' 
+#' @param exp_data Matrix of gene expression data (genes in rows, samples in columns).
+#' @param geno_data Matrix of genotype data (SNPs in rows, samples in columns).
+#' @param snpspos Matrix of SNP coordinates (columns: snpid,chr,pos).
+#' @param genepos Matrix of gene coordinates (columns: geneid,chr,left,right).
+#' @param covariates Matrix of covariates (samples in columns).
+#' @return MatrixeQTL result object.
+#' @author Kaur Alasoo
+#' @export 
+runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL, cisDist = 5e5, pvOutputThreshold = 1e-2){
   #Run matrixeQTL on a prepared data set
   
   #Perform some sanity checks
@@ -44,10 +57,10 @@ runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NU
     output_file_name = "",
     pvOutputThreshold = 0,  
     output_file_name.cis = NULL,
-    pvOutputThreshold.cis = 1e-2,
+    pvOutputThreshold.cis = pvOutputThreshold,
     snpspos = snpspos,
     genepos = genepos,
-    cisDist = 5e5,
+    cisDist = cisDist,
     useModel = modelLINEAR, 
     errorCovariance = numeric(), 
     verbose = TRUE,

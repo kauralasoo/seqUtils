@@ -157,7 +157,7 @@ loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broa
 #' variant positions and matrix of allele dosage (0,1,2)
 #' 
 #' @param file Path to the GDS file.
-#' @return List containint snpspos and genotypes matrix.
+#' @return List containing snpspos and genotypes matrix.
 #' @author Kaur Alasoo
 #' @export 
 gdsToMatrix <- function(gds_file){
