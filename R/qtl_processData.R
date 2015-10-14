@@ -18,10 +18,14 @@ extractSubset <- function(sample_meta, data, old_column_names = "sample_id", new
 #' @param snpspos Matrix of SNP coordinates (columns: snpid,chr,pos).
 #' @param genepos Matrix of gene coordinates (columns: geneid,chr,left,right).
 #' @param covariates Matrix of covariates (samples in columns).
+#' @param cisDist cis distance from the gene.
+#' @param pvOutputThreshold Maximum p-value to report. Smaller values make the code quicker.
+#' @param permute Permute genotype labels before qtl mapping.
 #' @return MatrixeQTL result object.
 #' @author Kaur Alasoo
 #' @export 
-runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL, cisDist = 5e5, pvOutputThreshold = 1e-2){
+runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL, 
+                          cisDist = 5e5, pvOutputThreshold = 1e-2, permute = FALSE){
   #Run matrixeQTL on a prepared data set
   
   #Perform some sanity checks
@@ -35,6 +39,12 @@ runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NU
   expression_sliced$ResliceCombined(sliceSize = 2000)
   
   #Create a SlicedData obejct for the genotypes
+  if(permute == TRUE){
+    #Permute column labels of the genotype data
+    genotype_labels = colnames(geno_data)
+    geno_data = geno_data[,sample(length(genotype_labels), length(genotype_labels))]
+    colnames(geno_data) = genotype_labels
+  }
   snps = SlicedData$new()
   snps$CreateFromMatrix(geno_data)
   snps$ResliceCombined()
