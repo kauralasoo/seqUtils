@@ -4,7 +4,8 @@
 \alias{runMatrixEQTL}
 \title{A wrapper around MatrixeQTL}
 \usage{
-runMatrixEQTL(exp_data, geno_data, snpspos, genepos, covariates = NULL)
+runMatrixEQTL(exp_data, geno_data, snpspos, genepos, covariates = NULL,
+  cisDist = 5e+05, pvOutputThreshold = 0.01, permute = FALSE)
 }
 \arguments{
 \item{exp_data}{Matrix of gene expression data (genes in rows, samples in columns).}
@@ -16,6 +17,12 @@ runMatrixEQTL(exp_data, geno_data, snpspos, genepos, covariates = NULL)
 \item{genepos}{Matrix of gene coordinates (columns: geneid,chr,left,right).}
 
 \item{covariates}{Matrix of covariates (samples in columns).}
+
+\item{cisDist}{cis distance from the gene.}
+
+\item{pvOutputThreshold}{Maximum p-value to report. Smaller values make the code quicker.}
+
+\item{permute}{Permute genotype labels before qtl mapping.}
 }
 \value{
 MatrixeQTL result object.
