@@ -166,15 +166,19 @@ gdsToMatrix <- function(gds_file){
   gds <- GWASTools::GdsGenotypeReader(gds_file)
   genotypes = GWASTools::getGenotype(gds)
   sample_ids = GWASTools::getVariable(gds, "sample.id")
-  snp_ids = GWASTools::getVariable(gds, "snp.rs.id")
+  snp_rs_ids = GWASTools::getVariable(gds, "snp.rs.id")
+  snp_ids = GWASTools::getVariable(gds, "snp.id")
+  
+  #Invent id for snps that do not have rs id
+  new_snp_ids = paste("snp",snp_ids[snp_rs_ids == ""], sep = "")
+  snp_rs_ids[snp_rs_ids == ""] = new_snp_ids
   colnames(genotypes) = sample_ids
-  rownames(genotypes) = snp_ids
+  rownames(genotypes) = snp_rs_ids
   
   #Extract SNP coordinates
-  snpspos = data_frame(snpid = GWASTools::getVariable(gds, "snp.rs.id"), 
+  snpspos = dplyr::data_frame(snpid = snp_rs_ids, 
              chr = GWASTools::getVariable(gds, "snp.chromosome"), 
              pos = GWASTools::getVariable(gds, "snp.position"))
   GWASTools::close(gds)
-  
   return(list(snpspos = snpspos, genotypes = genotypes))
 }
