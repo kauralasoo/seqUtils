@@ -52,7 +52,7 @@ saveEqtlbmaData <- function(eqtl_data_list, output_dir, project_root){
   
   #Save SNP coords to disk
   snpspos_path = file.path(output_dir, "snp_coords.bed")
-  snpspos_eqtlbma = dplyr::transmute(eqtl_data_list$snpspos, chr, start  = pos-1, end = pos, snpid)
+  snpspos_eqtlbma = dplyr::transmute(eqtl_data_list$snpspos, chr, start  = as.integer(pos-1), end = as.integer(pos), snpid)
   write.table(snpspos_eqtlbma, snpspos_path, sep ="\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
   
   #Save expression data
@@ -70,6 +70,12 @@ saveEqtlbmaData <- function(eqtl_data_list, output_dir, project_root){
   genotypes_list = data_frame(sample_name = names(eqtl_data_list$exprs_cqn_list), 
                          file_path = file.path(project_root, output_dir, "genotypes.txt"))
   write.table(genotypes_list, genotypes_list_path, sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
+  
+  #Save donor-genotype_id matrix
+  donor_genotype_path = file.path(output_dir, "donor_genotype_map.txt")
+  donor_gt_df = dplyr::filter(eqtl_data_list$sample_metadata, condition == "A") %>% 
+    dplyr::select(donor, genotype_id)
+  write.table(donor_gt_df, donor_genotype_path, sep = "\t", col.names = FALSE, row.names = FALSE, quote = FALSE)
 }
 
 
