@@ -169,7 +169,7 @@ gdsToMatrix <- function(gds_file){
   snp_rs_ids = GWASTools::getVariable(gds, "snp.rs.id")
   snp_ids = GWASTools::getVariable(gds, "snp.id")
   
-  #Invent id for snps that do not have rs id
+  #Invent id for snps that do not have an rs id
   new_snp_ids = paste("snp",snp_ids[snp_rs_ids == ""], sep = "")
   snp_rs_ids[snp_rs_ids == ""] = new_snp_ids
   colnames(genotypes) = sample_ids
@@ -181,4 +181,20 @@ gdsToMatrix <- function(gds_file){
              pos = GWASTools::getVariable(gds, "snp.position"))
   GWASTools::close(gds)
   return(list(snpspos = snpspos, genotypes = genotypes))
+}
+
+#' Import fastQTL output table into R.
+#'
+#' Detect if the table is from nominal run or permutation run and add proper column names.
+#' 
+#' @param file_path Path to the fastQTL output file
+#' @return data_frame containing gene_ids, snp ids and p-values.
+#' @author Kaur Alasoo
+#' @export 
+importFastQTLTable <- function(file_path){
+  table = read.table(file_path, stringsAsFactors = FALSE)
+  if(ncol(table) == 10){
+    colnames(table) = c("gene_id", "cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal","p_perm","p_beta")
+  }
+  return(table)
 }
