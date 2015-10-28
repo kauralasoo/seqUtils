@@ -193,8 +193,8 @@ gdsToMatrix <- function(gds_file){
 #' @export 
 importFastQTLTable <- function(file_path){
   table = read.table(file_path, stringsAsFactors = FALSE)
-  if(ncol(table) == 10){
-    colnames(table) = c("gene_id", "cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal","p_perm","p_beta")
+  if(ncol(table) == 11){
+    colnames(table) = c("gene_id", "cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal", "slope","p_perm","p_beta")
   }
   return(table)
 }
