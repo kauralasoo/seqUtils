@@ -1,3 +1,15 @@
+#' Import featureCounts output table into R.
+#'
+#' Skips the first comment line.
+#' 
+#' @param sample_dir Path to the directory containing the count files.
+#' @param sample_names Vector of sample names.
+#' @param counts_suffix Suffix of the counts file.
+#' @param sub_dir If TRUE, count files are nested in subfolders named after sample names, otherwise counts files
+#' are directly in sample_dir.
+#' @return Counts matrix where the first two columns are gene_id and feature length.
+#' @author Kaur Alasoo
+#' @export 
 loadCounts <- function(sample_dir, sample_names, counts_suffix = ".counts.txt", sub_dir = TRUE){
   #Load featureCounts output into R
   matrix = c()
@@ -8,7 +20,7 @@ loadCounts <- function(sample_dir, sample_names, counts_suffix = ".counts.txt", 
       path = file.path(sample_dir, paste(sample_names[i], counts_suffix, sep = ""))      
     }
     print(sample_names[i])
-    table = read.table(path, header = TRUE)
+    table = readr::read_tsv(path, skip = 1, col_types = "cccccii")
     print(head(table))
     if (i == 1){
       matrix = table[,c(1,6,7)]
