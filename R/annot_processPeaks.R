@@ -1,3 +1,13 @@
+#' Filter peak calls based on how many other samples they are found in.
+#'
+#' For each set of peak calls, find the ones that are present in at least minOverlapCount samples.
+#' 
+#' @param peak_list list of GRanges objects corresponding to peak calls.
+#' @param minOverlapCount Minimal number of samples the peak has to be present to be retained.
+#' @return List of GRanges objects corresponding to filtered peak calls from each sample, only peaks 
+#' that were present in minOverlapCount samples are retained.
+#' @author Kaur Alasoo
+#' @export 
 filterOverlaps <- function(peak_list, minOverlapCount = 3){
   #For each set of peaks, find the ones that are present in at least minOverlapCount samples
   result = list()

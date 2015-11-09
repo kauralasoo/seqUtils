@@ -137,6 +137,17 @@ loadMarkDuplicates <- function(sample_dir, sample_names, counts_suffix = ".MarkD
   return(matrix)
 }
 
+#' Import narrowPeak files into a list of GRanges objects.
+#'
+#' All narrowPeak files are assumed to be nested in subdirectories named adter sample names.
+#' Based on rtracklayer::import.bed, but adds additional columns present only in narrowPeak files.
+#' 
+#' @param sample_dir Path to the directory containing the narroPeak files.
+#' @param sample_names Vector of sample names.
+#' @param peaks_suffix Suffix of the narrowPeak files.
+#' @return List of GRanges objects corresponding to peak calls from each sample.
+#' @author Kaur Alasoo
+#' @export 
 loadNarrowPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak"){
   #Import narrowPeak files into a list
   result = list()
@@ -150,14 +161,25 @@ loadNarrowPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.nar
   return(result)
 }
 
+#' Import broadPeak files into a list of GRanges objects.
+#'
+#' All broadPeak files are assumed to be nested in subdirectories named adter sample names.
+#' Based on rtracklayer::import.bed, but adds additional columns present only in broadPeak files.
+#' 
+#' @param sample_dir Path to the directory containing the broadPeak files.
+#' @param sample_names Vector of sample names.
+#' @param peaks_suffix Suffix of the broadPeak files.
+#' @return List of GRanges objects corresponding to peak calls from each sample.
+#' @author Kaur Alasoo
+#' @export 
 loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak"){
   #Import broakPeak files into a list
   result = list()
-  extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric")
+  extraCols_broadPeak <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric")
   for (i in c(1:length(sample_names))){
     path = file.path(sample_dir, sample_names[i], paste(sample_names[i], peaks_suffix, sep = ""))
     print(path)
-    peaks = rtracklayer::import(path, format = "BED", extraCols = extraCols_narrowPeak)
+    peaks = rtracklayer::import(path, format = "BED", extraCols = extraCols_broadPeak)
     result[[sample_names[i]]] = peaks
   }
   return(result)
