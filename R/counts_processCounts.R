@@ -21,6 +21,15 @@ calculateTPM <- function(counts_matrix, lengths, selected_genes = NULL, fragment
   return(tpm)
 }
 
+#' Normalize read counts matrix using the cqn method.
+#'
+#' Quantile normalize read counts while correcting for feature length and GC countent.
+#' 
+#' @param counts_matrix Matrix of read counts.
+#' @param gene_metadata data.frame with at least three columns: gene_id, percentage_gc_content and length.
+#' @return Quantile-normalized and GC-corrected matrix.
+#' @author Kaur Alasoo
+#' @export 
 calculateCQN <- function(counts_matrix, gene_metadata){
   #Normalize read counts using the CQN method.
   expression_cqn = cqn(counts = counts_matrix[gene_metadata$gene_id,], x = gene_metadata$percentage_gc_content, 
@@ -56,4 +65,14 @@ filterExpressionDataset <- function(dataset, sample_ids = NULL, gene_ids = NULL)
     dataset$gene_metadata = dplyr::filter(dataset$gene_metadata, gene_id %in% gene_ids)
   }
   return(dataset)
+}
+
+#' Convert named vector into a tidy data_frame.
+#' 
+#' @param named_vector Named vector.
+#' @return data_frame with two columns: value, sample_id.
+#' @author Kaur Alasoo
+#' @export 
+tidyVector <- function(named_vector){
+  data_frame(value = named_vector, sample_id = names(named_vector))
 }
