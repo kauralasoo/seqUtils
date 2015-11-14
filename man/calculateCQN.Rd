@@ -9,7 +9,8 @@ calculateCQN(counts_matrix, gene_metadata)
 \arguments{
 \item{counts_matrix}{Matrix of read counts.}
 
-\item{gene_metadata}{data.frame with at least three columns: gene_id, percentage_gc_content and length.}
+\item{gene_metadata}{data.frame with at least three columns: gene_id,
+percentage_gc_content and length.}
 }
 \value{
 Quantile-normalized and GC-corrected matrix.

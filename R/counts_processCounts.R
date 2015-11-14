@@ -26,13 +26,15 @@ calculateTPM <- function(counts_matrix, lengths, selected_genes = NULL, fragment
 #' Quantile normalize read counts while correcting for feature length and GC countent.
 #' 
 #' @param counts_matrix Matrix of read counts.
-#' @param gene_metadata data.frame with at least three columns: gene_id, percentage_gc_content and length.
+#' @param gene_metadata data.frame with at least three columns: gene_id, 
+#' percentage_gc_content and length.
 #' @return Quantile-normalized and GC-corrected matrix.
 #' @author Kaur Alasoo
 #' @export 
 calculateCQN <- function(counts_matrix, gene_metadata){
   #Normalize read counts using the CQN method.
-  expression_cqn = cqn(counts = counts_matrix[gene_metadata$gene_id,], x = gene_metadata$percentage_gc_content, 
+  expression_cqn = cqn(counts = counts_matrix[gene_metadata$gene_id,], 
+                       x = gene_metadata$percentage_gc_content, 
                        lengths = gene_metadata$length, verbose = TRUE)
   expression_norm = expression_cqn$y + expression_cqn$offset
   return(expression_norm)
@@ -44,7 +46,8 @@ calculateNormFactors <- function(counts_matrix, method = "RLE", output = "rasqua
   dge = edgeR::calcNormFactors(dge, method = method)
   sample_info = dge$samples[,-1]
   if (output == "rasqual"){
-    size_matrix = matrix(rep(sample_info$norm.factors, nrow(counts_matrix)), nrow = nrow(counts_matrix), byrow = TRUE)
+    size_matrix = matrix(rep(sample_info$norm.factors, nrow(counts_matrix)), 
+                         nrow = nrow(counts_matrix), byrow = TRUE)
     rownames(size_matrix) = rownames(counts_matrix)
     return(size_matrix)
   }else{
@@ -75,4 +78,19 @@ filterExpressionDataset <- function(dataset, sample_ids = NULL, gene_ids = NULL)
 #' @export 
 tidyVector <- function(named_vector){
   data_frame(value = named_vector, sample_id = names(named_vector))
+}
+
+#' For a given gene_id, extract its expression from expression_matrix and join with metdata.
+#' 
+#' @param gene_id Gene id, corresponds to a row name of expression matrix.
+#' @param expression_matrix Matrix of gene exrpression; rows - gene ids, cols - sample_ids.
+#' @param sample_metadata Data frame with metadata for each sample.
+#' @return data frame that has gene expression in value column and metadata in other columns.
+#' @author Kaur Alasoo
+#' @export 
+constructGeneData <- function(gene_id, expression_matrix, sample_metadata){
+  #Construct df of gene expression for lmer analysis
+  gene_df = tidyVector(expression_matrix[gene_id,])
+  model_data = dplyr::left_join(gene_df, sample_metadata, by = "sample_id") 
+  return(model_data)
 }
