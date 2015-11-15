@@ -8,8 +8,19 @@ varianceExplained <- function(lmer_model){
   return(var_row)  
 }
 
+#' Estimate propotion of variance explained by each compoent in a model.
+#'
+#' #Apply an lme4 model (model_function) to a data frame and 
+#' report the proportion of variance explained by each component.
+#' 
+#' @param model_data data frame with all of the neccessary columns for the model.
+#' @param model_function Function that when applied to a model_data data frame returns an
+#' lme4 object.
+#' @return data frame containing the proportion of variance explained by each component.
+#' @author Kaur Alasoo
+#' @export 
 estimateVarianceExplained <- function(model_data, model_function){
-  #Apply an lmer4 model (model_function) to a dataset and report the proportion of variance explained by each component.
+ 
   #Set a flag to idicate if the model converged or not.
   tryCatch({
     var_exp = model_function(model_data) %>% varianceExplained()
