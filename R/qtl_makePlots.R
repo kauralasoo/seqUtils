@@ -84,8 +84,9 @@ savePlots <- function(plot_list, path, width, height){
   #Save a list of plots into the folder specified by path
   for (plot in plot_list){
     gene_name = plot$labels$title
+    snp_id = plot$labels$x
     if (!dir.exists(path)){ dir.create(path) } #Create dir if not there
-    file_name = file.path(path, paste(gene_name, ".pdf", sep = ""))
+    file_name = file.path(path, paste(gene_name, "-",snp_id, ".pdf", sep = ""))
     ggsave(file_name, plot, width = width, height = height)
   }
 }
