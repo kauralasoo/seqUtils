@@ -1,3 +1,12 @@
+#' Import EBI GWAS catalog into R.
+#'
+#' Imports tsv version of the GWAS catalog into R. Parses total sample size from the 
+#' INITIAL SAMPLE DESCRIPTION field and also flags each study that contains European samples.
+#' 
+#' @param path Path to the EBI GWAS catalog export file (must contain MAPPED_TRAIT field as well).
+#' @return data frame containing the gwas catalog.
+#' @author Kaur Alasoo
+#' @export 
 importGwasCatalog <- function(path){
   
   #Load gwas catlog from disk
@@ -9,9 +18,9 @@ importGwasCatalog <- function(path){
   
   #Extract sample size from the gwas catalog
   sample_sizes = lapply(as.list(studies$description), function(x){
-    str_extract_all(x, "(\\d+,\\d+)|(\\d+)") %>%
+    stringr::str_extract_all(x, "(\\d+,\\d+)|(\\d+)") %>%
       unlist() %>%
-      str_replace(",","") %>%
+      stringr::str_replace(",","") %>%
       as.numeric() %>%
       sum()
   })
@@ -25,7 +34,7 @@ importGwasCatalog <- function(path){
   gwas_columns = gwas_catalog[,c("PUBMEDID","CHR_ID","CHR_POS","SNPS","DISEASE/TRAIT","MAPPED_TRAIT")]
   colnames(gwas_columns) = c("pubmed_id", "chr", "pos", "snp_id", "trait", "mapped_trait")
   
-  #Filter by ethinicty and 
+  #Join study data with SNPS and remove NAs
   gwas_table = dplyr::left_join(studies_df, gwas_columns, by = "pubmed_id") %>%
     dplyr::filter(!is.na(chr), !is.na(pos))
   
