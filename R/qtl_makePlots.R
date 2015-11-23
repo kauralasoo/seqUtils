@@ -64,7 +64,8 @@ makeMultiplePlots <- function(snps_df, expression_matrix, genotype_matrix, sampl
     snp_id = snps_df[i,]$snp_id
     print(gene_id)
     plot = plotEQTL(gene_id, snp_id, expression_matrix, genotype_matrix, sample_metadata, gene_metadata)
-    result[[gene_id]] = plot 
+    plot_name = paste(gene_id, "-",snp_id, sep = "")
+    result[[plot_name]] = plot 
   }
   return(result)
 }
