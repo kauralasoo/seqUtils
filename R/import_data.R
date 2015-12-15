@@ -232,3 +232,30 @@ importFastQTLTable <- function(file_path){
   }
   return(table)
 }
+
+#' Import output files from bedCountFragmentLengths.py script into R.
+#'
+#' All fragment length files are assumed to be nested in subdirectories named after sample names.
+#' 
+#' @param sample_dir Path to the directory containing the fragment length files.
+#' @param sample_names Vector of sample names.
+#' @param file_suffix Suffix of the fragment lengths files.
+#' @return List of GRanges objects corresponding to peak calls from each sample.
+#' @author Kaur Alasoo
+#' @export 
+loadFragmentLengths <- function(sample_dir, sample_names, file_suffix = ".fragment_lengths.txt"){
+  result = c()
+  for (i in c(1:length(sample_names))){
+    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], file_suffix, sep = ""))
+    table = read.table(path) %>% dplyr::tbl_df()
+    colnames(table) = c("count", "fragment_length")
+    sample_table = dplyr::mutate(table, sample_id = sample_names[i])
+    if (i == 1){
+      result = sample_table
+    }
+    else{
+      result = rbind(result, sample_table)
+    }
+  }
+  return(result)
+}
