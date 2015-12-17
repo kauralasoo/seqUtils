@@ -51,7 +51,10 @@ calculateNormFactors <- function(counts_matrix, method = "RLE", output = "rasqua
     rownames(size_matrix) = rownames(counts_matrix)
     return(size_matrix)
   }else{
-    return(sample_info)
+    colnames(sample_info) = c("library_size", "norm_factor")
+    result = dplyr::mutate(sample_info, sample_id = rownames(sample_info)) %>%
+      dplyr::select(sample_id, everything())
+    return(result)
   }
 }
 

@@ -217,22 +217,6 @@ gdsToMatrix <- function(gds_file){
   return(list(snpspos = snpspos, genotypes = genotypes))
 }
 
-#' Import fastQTL output table into R.
-#'
-#' Detect if the table is from nominal run or permutation run and add proper column names.
-#' 
-#' @param file_path Path to the fastQTL output file
-#' @return data_frame containing gene_ids, snp ids and p-values.
-#' @author Kaur Alasoo
-#' @export 
-importFastQTLTable <- function(file_path){
-  table = read.table(file_path, stringsAsFactors = FALSE)
-  if(ncol(table) == 11){
-    colnames(table) = c("gene_id", "cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal", "slope","p_perm","p_beta")
-  }
-  return(table)
-}
-
 #' Import output files from bedCountFragmentLengths.py script into R.
 #'
 #' All fragment length files are assumed to be nested in subdirectories named after sample names.

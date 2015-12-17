@@ -104,27 +104,6 @@ importPEERFactors <- function(file_path, design_matrix, remove_mean = TRUE){
   return(peer_factors)
 }
 
-#' Save a list of matrices into a suitable format for FastQTL
-#'
-#' Works with expression and covariates matrices.
-#' 
-#' @param data_list list of matrices
-#' @param output_dir relative path to the output dir
-#' @param file_suffix suffix added to each file after their name in the list.
-#' @return None
-#' @author Kaur Alasoo
-#' @export 
-saveFastqtlMatrices <- function(data_list, output_dir, file_suffix = "expression"){
-  #Save data for FastQTL to disk
-
-  #Save each matrix as a separate  txt file
-  for (sn in names(data_list)){
-    file_path = file.path(output_dir, paste(sn,file_suffix, "txt", sep = "."))
-    print(file_path)
-    write.table(data_list[[sn]], file_path, sep = "\t", quote = FALSE, row.names = FALSE)
-  }
-}
-
 #' Calculate Pi1 replicability statistic between two sets of pvalues
 #' 
 #' Currently expects the following columns: gene_id, qvalue and p_beta.
