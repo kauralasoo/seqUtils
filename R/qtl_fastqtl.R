@@ -30,7 +30,7 @@ saveFastqtlMatrices <- function(data_list, output_dir, file_suffix = "expression
 importFastQTLTable <- function(file_path){
   table = read.table(file_path, stringsAsFactors = FALSE)
   if(ncol(table) == 11){
-    colnames(table) = c("gene_id", "cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal", "slope","p_perm","p_beta")
+    colnames(table) = c("gene_id", "n_cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal", "slope","p_perm","p_beta")
   }
   return(table)
 }

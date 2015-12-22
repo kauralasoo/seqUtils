@@ -81,12 +81,20 @@ runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NU
   return(me)
 }
 
-savePEERData <- function(expression_list, outdir){
+#' Save list of expression matrices in a format suitable for runPEER.py
+#'
+#' @param expression_list list of expression matrices
+#' @param outdir output directory
+#' @param file_suffix suffix of the output file
+#'
+#' @export
+#'
+savePEERData <- function(expression_list, outdir, file_suffix = "exprs"){
   #Save eQTL gene expression data to be used with PEER
   sample_names = names(expression_list)
   for (sample in sample_names){
     matrix = expression_list[[sample]]
-    path = file.path(outdir, paste(sample, ".exprs.txt", sep = ""))
+    path = file.path(outdir, paste(sample, file_suffix ,"txt", sep = "."))
     print(path)
     write.table(t(matrix), path, row.names = FALSE, col.names = FALSE, sep = ",")
   }

@@ -16,6 +16,22 @@ extractConditionFromExpressionList <- function(expression_list, cond_name){
     gene_metadata = expression_list$gene_metadata)
 }
 
+extractGenesFromExpressionList <- function(expression_list, gene_ids){
+  new_counts = expression_list$counts[gene_ids,]
+  new_cqn = expression_list$cqn[gene_ids,]
+  new_tpm = expression_list$tpm[gene_ids,]
+  new_gene_metadata = dplyr::filter(expression_list$gene_metadata, gene_id %in% gene_ids)
+  
+  result_list = list(
+    counts = new_counts,
+    cqn = new_cqn,
+    tpm = new_tpm,
+    norm_factors = expression_list$norm_factors,
+    sample_metadata = expression_list$sample_metadata,
+    gene_metadata = new_gene_metadata
+  )
+}
+
 renameMatrixColumnsInExpressionList <- function(expression_list, old_column_names, new_column_names){
   
   #Change colunn names

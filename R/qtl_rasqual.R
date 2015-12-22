@@ -58,3 +58,14 @@ countSnpsOverlapingPeaks <- function(peak_metadata, snp_coords, cis_window = 500
   new_peak_coords = dplyr::mutate(peak_coords, feature_snp_count = feature_snps, cis_snp_count = cis_snps)
   return(new_peak_coords)
 }
+
+importRasqualTable <- function(path){
+  rasqual_results = readr::read_delim(path, delim = "\t", col_types = "ccciddiii",col_names = FALSE)
+  colnames(rasqual_results) = c("gene_id", "snp_id", "chr", "pos", "chisq", "pi", "n_feature_snps", "n_cis_snps", "converged")
+  
+  rasqual_pvalues = dplyr::filter(rasqual_results, snp_id != "SKIPPED") %>%
+    dplyr::mutate(p_nominal = pchisq(chisq, df = 1, lower = FALSE))
+  
+  return(rasqual_pvalues)
+}
+
