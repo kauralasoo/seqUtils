@@ -59,3 +59,10 @@ prepareFastqtlMatrix <- function(matrix, genepos){
     dplyr::select(geneid, everything()) %>%
     dplyr::left_join(genepos, ., by = "geneid")
 }
+
+prepareFastqtlCovariates <- function(covariates, selected_rows){
+  cov = covariates[selected_rows,]
+  new_cov = dplyr::mutate(as.data.frame(cov), id = rownames(cov)) %>%
+    dplyr::select(id, everything())
+  return(new_cov)
+}
