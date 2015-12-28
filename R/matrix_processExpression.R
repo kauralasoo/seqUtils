@@ -42,13 +42,18 @@ zScoreNormalize <- function(matrix){
   return(matrix)
 }
 
-performPCA <- function(matrix, design, ...){
+performPCA <- function(matrix, design, n_pcs = NULL, ...){
   #Perform PCA of gene expression matrix add experimental design metadata to the results
   pca = prcomp(t(matrix), ...)
-  pca_matrix = as.data.frame(pca$x) %>% 
+  if(is.null(n_pcs)){
+    n_pcs = ncol(matrix)
+  }
+  pca_matrix = as.data.frame(pca$x[,1:n_pcs]) %>% 
     dplyr::mutate(sample_id = rownames(pca$x)) %>%
     dplyr::left_join(design, by = "sample_id")
-  return(list(pca_matrix = pca_matrix, pca_object = pca))
+  #Calculate variance explained by each component
+  var_exp = (pca$sdev^2) / sum(pca$sdev^2)
+  return(list(pca_matrix = pca_matrix, pca_object = pca, var_exp = var_exp))
 }
 
 filterDESeqResults <- function(results,gene_metadata, min_padj = 0.01, min_fc = 1, biotype_filter = NULL){
