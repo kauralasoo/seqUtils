@@ -59,9 +59,18 @@ countSnpsOverlapingPeaks <- function(peak_metadata, snp_coords, cis_window = 500
   return(new_peak_coords)
 }
 
+#' Import rasqual output table into R
+#'
+#' Skipped gene-SNP pairs are automatically removed and 
+#' chisq statistic is converted into p-value (p_nominal).
+#'
+#' @param path Bath to rasqual output file.
+#'
+#' @return data_frame
+#' @export
 importRasqualTable <- function(path){
-  rasqual_results = readr::read_delim(path, delim = "\t", col_types = "ccciddiii",col_names = FALSE)
-  colnames(rasqual_results) = c("gene_id", "snp_id", "chr", "pos", "chisq", "pi", "n_feature_snps", "n_cis_snps", "converged")
+  rasqual_results = readr::read_delim(path, delim = "\t", col_types = "cccidddiii",col_names = FALSE)
+  colnames(rasqual_results) = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "chisq", "pi", "n_feature_snps", "n_cis_snps", "converged")
   
   rasqual_pvalues = dplyr::filter(rasqual_results, snp_id != "SKIPPED") %>%
     dplyr::mutate(p_nominal = pchisq(chisq, df = 1, lower = FALSE))
@@ -69,3 +78,78 @@ importRasqualTable <- function(path){
   return(rasqual_pvalues)
 }
 
+#' Helper function for rasqualGcCorrection
+#' 
+#' @author Natsuhiko Kumasaka
+Quantile <- function(x,k=20){
+  x=rank(x,ties="random")
+  z=rep(0,length(x))
+  for(i in 1:k){
+    z = z+as.numeric(x<=quantile(x,i/k,na.rm=T))
+  }
+  k-z
+}
+
+#' Correct rasqual size factors matrix for gc content
+#'
+#' @param Y Matrix of read counts
+#' @param gcvec Vector of GC content percentages
+#' @param PLOT 
+#'
+#' @return Matrix of GC-corrected library sizes.
+#' @export
+#' @author Natsuhiko Kumasaka
+rasqualGcCorrection <- function(Y,gcvec,PLOT=F){
+  bin=Quantile(gcvec,200);
+  x=sort(unlist(lapply(split(gcvec,bin),mean)))
+  S=apply(Y,2,function(y){unlist(lapply(split(y,bin),sum))[as.character(0:199)]});
+  Fs=log(t(t(S)/apply(S,2,sum))/apply(S,1,sum)*sum(S));
+  Gs=apply(Fs,2,function(y){smooth.spline(x,y,spar=1)$y}); 
+  if(PLOT){
+    par(mfcol=c(5,5),mar=c(2,2,2,2)); 
+    for(i in 1:ncol(Y)){
+      plot(Fs[,i])
+      lines(Gs[,i],col=2)
+    }
+    matplot(x,Gs,type="l",col=2,lty=1)
+  }
+  exp(Gs[bin+1,])
+}
+
+#' Split gene ids into batches for runRasqual.py script
+#'
+#' @param gene_metadata Data frame with gene metadata (gene_id column required)
+#' @param batch_size Number of genes in a batch
+#'
+#' @return Data frame of gene batches (columns: batch_id, gene_ids)
+#' @export
+rasqualConstructGeneBatches <- function(gene_metadata, batch_size){
+  batch_df = dplyr::select(gene_metadata, gene_id) %>%
+    dplyr::mutate(batch_number = splitIntoBatches(length(gene_id), batch_size)) %>%
+    dplyr::mutate(batch_id = paste("batch", batch_number, sep = "_")) %>% 
+    dplyr::group_by(batch_id) %>%
+    dplyr::summarize(gene_ids = paste(gene_id, collapse = ","))
+  return(batch_df)
+}
+
+#' Find SNP with minimal p-value per gene.
+#'
+#' Group QTL matrix by gene, sort by p_nominal, keep SNP with smalles p-value,
+#' Correct that using bonferroni correction and then apply FDR correction across genes.
+#'
+#' @param qtl_df Data frame with QTL mapping results 
+#' (required columns: gene_id, p_nominal, n_cis_snps)
+#'
+#' @return Only gene-SNP pairs with minimal p-values,
+#'  added columns: p_bonferroni, p_fdr.
+#' @export
+findMinimalSnpPvalues <- function(qtl_df){
+  result = dplyr::group_by(qtl_df, gene_id) %>%
+    dplyr::arrange(p_nominal) %>% 
+    dplyr::filter(row_number() == 1) %>%
+    dplyr::mutate(p_bonferroni = p.adjust(p_nominal, "bonferroni", n_cis_snps)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(p_nominal) %>%
+    dplyr::mutate(p_fdr = p.adjust(p_bonferroni, "fdr"))
+  return(result)
+}
