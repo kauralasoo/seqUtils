@@ -153,3 +153,33 @@ findMinimalSnpPvalues <- function(qtl_df){
     dplyr::mutate(p_fdr = p.adjust(p_bonferroni, "fdr"))
   return(result)
 }
+
+#' Find SNP with minimal p-value per gene from SQLite database.
+#'
+#' Group QTL database by gene, sort by p_nominal, keep SNP with smallest p-value,
+#' correct that using bonferroni correction and then apply FDR correction across genes.
+#'
+#' @param sqlite_path Path to the SQLlite database file with RASQUAL output. 
+#' Table name rasqual (required columns: gene_id, p_nominal, n_cis_snps)
+#'
+#' @return Only gene-SNP pairs with minimal p-values,
+#'  added columns: p_bonferroni, p_fdr.
+#' @export
+findMinimalSnpPvaluesSQLite <- function(sqlite_path){
+  
+  #Connect to database filter by maximal chisq value
+  my_db <- dplyr::src_sqlite(sqlite_path)
+  table = tbl(my_db, sql("SELECT *,MAX(chisq) AS chisq2 FROM rasqual GROUP BY gene_id")) %>% 
+    collect() %>%
+    dplyr::filter(snp_id != "SKIPPED") %>%
+    dplyr::select(-chisq2) %>% #Remove the second copy of chisq column
+    dplyr::mutate(p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>% #Calculate p-value
+    dplyr::group_by(gene_id) %>%
+    dplyr::mutate(p_bonferroni = p.adjust(p_nominal, "bonferroni", n_cis_snps)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(p_nominal) %>%
+    dplyr::mutate(p_fdr = p.adjust(p_bonferroni, "fdr"))
+  return(table)
+}
+
+
