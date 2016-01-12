@@ -182,4 +182,34 @@ findMinimalSnpPvaluesSQLite <- function(sqlite_path){
   return(table)
 }
 
+#' Extract rasqual results for particular gene_id or snp_id from the SQLite database
+#'
+#' Either selected_gene_id or selected_snp_id must be specified. 
+#' 
+#' @param db_table Connection to SQLite database table.
+#' (required columns: gene_id, snp_id, p_nominal, allele_freq).
+#' @param selected_gene_id Id of the selected gene. 
+#' @param selected_snp_id Id of the selected SNP.
+#'
+#' @return data.frame with rasqual results for a particular gene or SNP.
+#' @export
+fetchSQLite <- function(db_table, selected_gene_id = NULL, selected_snp_id = NULL){
+  
+  if(is.null(selected_snp_id) & is.null(selected_gene_id)){
+    stop("Need to specify at least selected_gene_id or selected_snp_id.")
+  } else if (!is.null(selected_snp_id) & !is.null(selected_gene_id)){
+    result = dplyr::filter(db_table, gene_id == selected_gene_id, snp_id = selected_snp_id) %>% dplyr::collect()
+  } else if (!is.null(selected_gene_id)){
+    result = dplyr::filter(db_table, gene_id == selected_gene_id) %>% dplyr::collect()
+  } else {
+    result = dplyr::filter(db_table, snp_id == selected_snp_id) %>% dplyr::collect()
+  }
+  
+  #Add p-value and MAF
+  result = dplyr::mutate(result, p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>%
+    dplyr::mutate(MAF = pmin(allele_freq, 1-allele_freq))
+  return(result)
+}
+
+
 

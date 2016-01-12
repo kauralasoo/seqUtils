@@ -27,3 +27,25 @@ testColoc <- function(df1, df2, n1, n2, p1 = 1e-4, p2 = 1e-4, p12 = 1e-5){
                             p1 = p1, p2 = p2, p12 = p12)
   return(result)
 }
+
+
+#' Calculate posterior probabilities from association summary stats
+#'
+#' @param dataset Association summary statistics
+#' (required columns: snp_id, p_nominal, effect_size, MAF).
+#' @param n Sample size of the dataset
+#'
+#' @return Original data frame with one additional column containing posterior probabilities.
+#' @export
+addAssociationPosterior <- function(dataset, n){
+  
+  #Use the coloc package to calculate ABFs
+  coloc_res = testColoc(dataset, dataset, n, n)
+  post_df = dplyr::transmute(a$results, snp_id = snp, lABF = lABF.df1) %>% 
+    dplyr::mutate(posterior = exp(lABF)/sum(exp(lABF))) %>% 
+    dplyr::select(snp_id, posterior) %>%
+    dplyr::mutate(snp_id = as.character(snp_id))
+  result = dplyr::left_join(dataset, post_df, by = "snp_id") 
+  return(result)
+}
+
