@@ -1,3 +1,13 @@
+extractSubset <- function(sample_meta, data, old_column_names = "sample_id", new_column_names = "donor"){
+  #Extract subset of columns from a data.frame and rename column names
+  
+  sample_meta = as.data.frame(sample_meta)               #Ensure that its a data.frame
+  subset_data = data[,sample_meta[,old_column_names]]    #Keep only sample that are in the metadata column
+  colnames(subset_data) = sample_meta[,new_column_names] #Rename the columns with donor id
+  
+  return(subset_data)
+}
+
 idVectorToList <- function(id_vector){
   #Convert a vector of IDs into a list of ids where the elements have the same name
   id_list = as.list(id_vector)
