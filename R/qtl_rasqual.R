@@ -198,18 +198,29 @@ fetchSQLite <- function(db_table, selected_gene_id = NULL, selected_snp_id = NUL
   if(is.null(selected_snp_id) & is.null(selected_gene_id)){
     stop("Need to specify at least selected_gene_id or selected_snp_id.")
   } else if (!is.null(selected_snp_id) & !is.null(selected_gene_id)){
-    result = dplyr::filter(db_table, gene_id == selected_gene_id, snp_id = selected_snp_id) %>% dplyr::collect()
+    result = dplyr::filter(db_table, gene_id == selected_gene_id, snp_id == selected_snp_id) %>% dplyr::collect()
   } else if (!is.null(selected_gene_id)){
     result = dplyr::filter(db_table, gene_id == selected_gene_id) %>% dplyr::collect()
   } else {
     result = dplyr::filter(db_table, snp_id == selected_snp_id) %>% dplyr::collect()
   }
   
-  #Add p-value and MAF
+  #Add p-value, beta and MAF
   result = dplyr::mutate(result, p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>%
-    dplyr::mutate(MAF = pmin(allele_freq, 1-allele_freq))
+    dplyr::mutate(MAF = pmin(allele_freq, 1-allele_freq)) %>%
+    dplyr::mutate(beta = -log(effect_size/(1-effect_size),2)) #Calculate beta from rasqual pi
   return(result)
 }
+
+#' Fetch multiple genes from SQLite database
+#' NOTE: This implementation is extremely inefficient
+fetchMultipleGenes <- function(gene_ids, db_table){
+  
+  gene_id_list = idVectorToList(gene_ids)
+  result = lapply(gene_id_list, function(gene_id, db){ fetchSQLite(db, selected_gene_id = gene_id) }, db_table) %>%
+    ldply(.id = NULL)
+  return(result)
+  }
 
 
 

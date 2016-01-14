@@ -25,7 +25,7 @@ extractSubset <- function(sample_meta, data, old_column_names = "sample_id", new
 #' @author Kaur Alasoo
 #' @export 
 runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NULL, 
-                          cisDist = 5e5, pvOutputThreshold = 1e-2, permute = FALSE){
+                          cisDist = 5e5, pvOutputThreshold = 1e-2, permute = FALSE, model = modelLINEAR){
   #Run matrixeQTL on a prepared data set
   
   #Perform some sanity checks
@@ -71,7 +71,7 @@ runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NU
     snpspos = snpspos,
     genepos = genepos,
     cisDist = cisDist,
-    useModel = modelLINEAR, 
+    useModel = model, 
     errorCovariance = numeric(), 
     verbose = TRUE,
     pvalue.hist = "qqplot",
@@ -167,3 +167,9 @@ calculatePairwisePi1 <- function(qtl_list, qvalue_thresh = 0.1, tidy = FALSE){
   }
   return(rep_matrix)
 }
+
+constructMatrixEQTLGenePos <- function(gene_metadata){
+  res = dplyr::transmute(gene_metadata, geneid = gene_id, chr, left = start, right = end)
+  return(res)
+}
+
