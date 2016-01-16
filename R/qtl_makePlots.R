@@ -25,19 +25,19 @@ plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_
   
   #expression
   expression_vector = expression_matrix[selected_gene_id,]
-  exprs_df = data_frame(sample_id = names(expression_vector), norm_exp = expression_vector)
+  exprs_df = dplyr::data_frame(sample_id = names(expression_vector), norm_exp = expression_vector)
   
   #Join all of the data together
   plot_df = dplyr::left_join(sample_metadata, exprs_df, by ="sample_id") %>%
     left_join(genotype_df, by = "genotype_id")
   
-  plot = ggplot(plot_df, aes(x = genotype_value, y = norm_exp)) + 
-    facet_wrap(~ condition_name) + 
-    geom_boxplot(outlier.shape = NA) + 
-    geom_jitter(position = position_jitter(width = .1)) + 
-    ylab("Normalized expression") +
-    xlab(genotype_id) + 
-    labs(title = gene_name)
+  plot = ggplot2::ggplot(plot_df, aes(x = genotype_value, y = norm_exp)) + 
+    ggplot2::facet_wrap(~ condition_name) + 
+    ggplot2::geom_boxplot(outlier.shape = NA) + 
+    ggplot2::geom_jitter(position = position_jitter(width = .1)) + 
+    ggplot2::ylab("Normalized expression") +
+    ggplot2::xlab(genotype_id) + 
+    ggplot2::labs(title = gene_name)
   
   return(plot)
 }
