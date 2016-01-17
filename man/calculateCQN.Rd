@@ -4,13 +4,15 @@
 \alias{calculateCQN}
 \title{Normalize read counts matrix using the cqn method.}
 \usage{
-calculateCQN(counts_matrix, gene_metadata)
+calculateCQN(counts_matrix, gene_metadata, return_type = "normalised")
 }
 \arguments{
 \item{counts_matrix}{Matrix of read counts.}
 
 \item{gene_metadata}{data.frame with at least three columns: gene_id, 
 percentage_gc_content and length.}
+
+\item{return_type}{If return_type == "normalised" then return normalized expression matrix, otherwise return cqn object.}
 }
 \value{
 Quantile-normalized and GC-corrected matrix.

@@ -1,4 +1,12 @@
-extractConditionFromExpressionList <- function(expression_list, cond_name){
+#' Extract samples from expression list based on condition_name column in metadata.
+#'
+#' @param cond_name Name of the condition, has to match at least one entry in the 
+#' condition_name columns of the sample_metadata data frame.
+#' @param expression_list Expression list to be filtered.
+#'
+#' @return Filtered expression list
+#' @export
+extractConditionFromExpressionList <- function(cond_name, expression_list){
   
   new_sample_meta = dplyr::filter(expression_list$sample_metadata, condition_name == cond_name)
   new_counts = expression_list$counts[,new_sample_meta$sample_id]
@@ -24,6 +32,13 @@ extractConditionFromExpressionList <- function(expression_list, cond_name){
     gene_metadata = expression_list$gene_metadata)
 }
 
+#' Extract a subset of genes from expression list
+#'
+#' @param expression_list Input expression list object.
+#' @param gene_ids Vector of gene ids to be retained.
+#'
+#' @return Filtered expression list that only contains genes from gene_ids.
+#' @export
 extractGenesFromExpressionList <- function(expression_list, gene_ids){
   new_counts = expression_list$counts[gene_ids,]
   new_cqn = expression_list$cqn[gene_ids,]

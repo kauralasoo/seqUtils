@@ -21,9 +21,11 @@ saveRasqualMatrices <- function(data_list, output_dir, file_suffix = "expression
   }
 }
 
-
-rasqualSizeFactorsMatrix <- function(expression_list, factor_name){
+rasqualSizeFactorsMatrix <- function(expression_list, factor_name, standardise = TRUE){
   factor_vector = expression_list$norm_factor[,factor_name]
+  if (standardise){
+    factor_vector = factor_vector/mean(factor_vector) #Divide by mean library size
+  }
   size_matrix = matrix(rep(factor_vector, nrow(expression_list$counts)), nrow = nrow(expression_list$counts), byrow = TRUE)
   rownames(size_matrix) = rownames(expression_list$counts)
   return(size_matrix)
@@ -220,7 +222,49 @@ fetchMultipleGenes <- function(gene_ids, db_table){
   result = lapply(gene_id_list, function(gene_id, db){ fetchSQLite(db, selected_gene_id = gene_id) }, db_table) %>%
     ldply(.id = NULL)
   return(result)
-  }
+}
 
+#' Write multiple files for RASQUAL onto disk.
+#'
+#' @param condition_list Named list of expression lists, each expression list needs to
+#' contain at least the following elements: 'counts' matrix, 'sample_metadata' df,
+#' @param rasqual_input_folder Path to the RASQUAL input folder.
+#' @param max_batch_size Maximal number of feaures to be included in a single batch.
+#'
+#' @export
+exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch_size = 50){
+  if(!is.list(condition_list)){
+    stop("Input condiiton_list must be a list.")
+  }
+  if(length(condition_list) < 1){
+    stop("The conditon_list must have at least one element.")
+  }
+  
+  #Extract and save read count matrices
+  counts_list = lapply(condition_list, function(x){x$counts})
+  saveRasqualMatrices(counts_list, rasqual_input_folder, file_suffix = "expression")
+  
+  #Extract sample-genotype map for each condition
+  sg_map = lapply(condition_list, function(x){ dplyr::select(x$sample_metadata, sample_id, genotype_id) })
+  saveFastqtlMatrices(sg_map, rasqual_input_folder, file_suffix = "sg_map", col_names = FALSE)
+  
+  #Export library size
+  library_size_list = lapply(condition_list, rasqualSizeFactorsMatrix, "library_size")
+  saveRasqualMatrices(library_size_list, rasqual_input_folder, file_suffix = "library_size")
+  
+  #Export GC-corrected library sizes
+  
+  #Export offsets from the cqn pacakge
+  
+  #Save feature names to disk
+  feature_names = rownames(counts_list[[1]])
+  write.table(feature_names, file.path(rasqual_input_folder, "feature_names.txt"), 
+              row.names = FALSE, col.names = FALSE, quote = FALSE)
+  
+  #Construct a list of batches for rasqual
+  feature_batches = rasqualConstructGeneBatches(condition_list[[1]]$gene_metadata, max_batch_size)
+  write.table(feature_batches, file.path(rasqual_input_folder, "feature_batches.txt"), 
+              row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+}
 
 
