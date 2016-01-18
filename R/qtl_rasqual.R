@@ -54,12 +54,59 @@ countSnpsOverlapingPeaks <- function(peak_metadata, snp_coords, cis_window = 500
   snp_granges = GenomicRanges::GRanges(seqnames = snp_coords$chr, ranges = IRanges::IRanges(start = snp_coords$pos, end = snp_coords$pos))
   
   #Count overlaps
-  feature_snps = GenomicRanges::countOverlaps(peak_granges, snp_granges)
-  cis_snps = GenomicRanges::countOverlaps(region_granges, snp_granges)
+  feature_snps = GenomicRanges::countOverlaps(peak_granges, snp_granges, ignore.strand = TRUE)
+  cis_snps = GenomicRanges::countOverlaps(region_granges, snp_granges, ignore.strand = TRUE)
   
   new_peak_coords = dplyr::mutate(peak_coords, feature_snp_count = feature_snps, cis_snp_count = cis_snps)
   return(new_peak_coords)
 }
+
+#' Count the number of feature SNPs and cis SNPs overlapping exons of all genes
+#'
+#' @param gene_metadata Data frame with gene metadata (required columns: gene_id, chr, strand, exon_starts, exon_ends)
+#' -exon_stars: comma-separated list of exon start coordinates
+#' -exon_ends: comma-separated list of exon end coordinates.
+#' @param snp_coords Data frame with SNP coordinates from a VCF file (required columns: chr, pos, snp_id)
+#' @param cis_window Size of the cis window from both sides of the gene.
+#'
+#' @return Data frame with exon coordinates, cis region coordiantes as well as the number of cis and feature snps.
+#' @export
+countSnpsOverlapingExons <- function(gene_metadata, snp_coords, cis_window = 5e5){
+  
+  #Split exon coordinates into separate rows
+  gene_df_list = plyr::dlply(gene_metadata, .(gene_id), function(x){
+                          data.frame(gene_id = x$gene_id, 
+                                     seqnames = x$chr,
+                                     strand = x$strand,
+                                     start = as.numeric(unlist(strsplit(x$exon_starts,","))),
+                                     end = as.numeric(unlist(strsplit(x$exon_ends,","))) )
+                        })
+  exon_df = plyr::ldply(gene_df_list, .id = NULL) %>% tbl_df()
+  
+  #Counts the number of feature SNPs
+  exon_granges = dataFrameToGRanges(exon_df)
+  snp_granges = GenomicRanges::GRanges(seqnames = snp_coords$chr, 
+                                       ranges = IRanges::IRanges(start = snp_coords$pos, end = snp_coords$pos))
+  n_feature_snps = GenomicRanges::countOverlaps(exon_granges, snp_granges, ignore.strand=TRUE)
+  feature_snp_df = dplyr::mutate(exon_df, feature_snp_count = n_feature_snps) %>% 
+    dplyr::group_by(gene_id) %>% 
+    dplyr::summarise(seqnames = seqnames[1], strand = strand[1], start = min(start), end = max(end), 
+                     feature_snp_count = sum(feature_snp_count))
+  
+  #Count the number of cis SNPs
+  cis_df = dplyr::mutate(feature_snp_df, start = pmax(0, start - cis_window), end = end + cis_window)
+  cis_granges = dataFrameToGRanges(cis_df)
+  n_cis_snps = GenomicRanges::countOverlaps(cis_granges, snp_granges, ignore.strand=TRUE)
+  result = dplyr::mutate(cis_df, cis_snp_count = n_cis_snps, gene_id = as.character(gene_id)) %>%
+    dplyr::rename(range_start = start, range_end = end)
+  
+  #Add exon start and end coords and reorder columns
+  start_end_df = dplyr::select(gene_metadata, gene_id, exon_starts, exon_ends)
+  result = dplyr::left_join(result, start_end_df, by = "gene_id") %>%
+    dplyr::transmute(gene_id, chromosome_name = seqnames, strand, exon_starts, exon_ends, 
+                     range_start, range_end, feature_snp_count, cis_snp_count)
+  return(result)
+  }
 
 #' Import rasqual output table into R
 #'
@@ -92,20 +139,31 @@ Quantile <- function(x,k=20){
   k-z
 }
 
-#' Correct rasqual size factors matrix for gc content
+#' Estimate the effect of GC-bias for each feature in each sample.
+#' 
+#' This function does not correct for differences in library size between samples.
 #'
 #' @param Y Matrix of read counts
-#' @param gcvec Vector of GC content percentages
+#' @param gene_metadata Data frame with gene metadata.
+#' (required columnss: gene_id, percentage_gc_content)
 #' @param PLOT 
 #'
-#' @return Matrix of GC-corrected library sizes.
+#' @return Matrix of GC-bias offsets for each gene in each condition.
 #' @export
 #' @author Natsuhiko Kumasaka
-rasqualGcCorrection <- function(Y,gcvec,PLOT=F){
+rasqualGcCorrection <- function(Y,gene_metadata,PLOT=F){
+  
+  #Extract GC vector from the metadata matrix
+  gene_metadata = as.data.frame(gene_metadata)
+  rownames(gene_metadata) = gene_metadata$gene_id
+  gene_metadata = gene_metadata[rownames(Y),]
+  gcvec = gene_metadata$percentage_gc_content
+  
+  #Perfrorm GC correction
   bin=Quantile(gcvec,200);
   x=sort(unlist(lapply(split(gcvec,bin),mean)))
   S=apply(Y,2,function(y){unlist(lapply(split(y,bin),sum))[as.character(0:199)]});
-  Fs=log(t(t(S)/apply(S,2,sum))/apply(S,1,sum)*sum(S));
+  Fs=log(t(t(S)/apply(S,2,sum))/apply(S,1,sum)*sum(as.numeric(S)));
   Gs=apply(Fs,2,function(y){smooth.spline(x,y,spar=1)$y}); 
   if(PLOT){
     par(mfcol=c(5,5),mar=c(2,2,2,2)); 
@@ -115,7 +173,10 @@ rasqualGcCorrection <- function(Y,gcvec,PLOT=F){
     }
     matplot(x,Gs,type="l",col=2,lty=1)
   }
-  exp(Gs[bin+1,])
+  result_matrix = exp(Gs[bin+1,])
+  #Add gene ids to rows
+  rownames(result_matrix) = rownames(Y)
+  return(result_matrix)
 }
 
 #' Split gene ids into batches for runRasqual.py script

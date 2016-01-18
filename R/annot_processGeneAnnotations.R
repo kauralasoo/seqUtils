@@ -108,16 +108,25 @@ constructIntronExonDf <- function(gene_id, gene_data, intron_gap = 10, type = "i
   }
 }
 
+#' Convert a data frame into a GRanges object
+#' 
+#' Seqnames, strand, start and end columns are used as corresponding elements 
+#' in the GRanges object. Remaining columns are added into the elementMetadata data frame.
+#'
+#' @param df Input data frame (required columns: seqnames, start, end, strand)
+#'
+#' @return GRanges object construct from df.
+#' @export
 dataFrameToGRanges <- function(df){
   #Convert a data.frame into a GRanges object
   
-  gr = GRanges(seqnames = df$seqnames, 
-               ranges = IRanges(start = df$start, end = df$end),
+  gr = GenomicRanges::GRanges(seqnames = df$seqnames, 
+               ranges = IRanges::IRanges(start = df$start, end = df$end),
                strand = df$strand)
   
   #Add metadata
   meta = dplyr::select(df, -start, -end, -strand, -seqnames)
-  elementMetadata(gr) = meta
+  GenomicRanges::elementMetadata(gr) = meta
   
   return(gr)
 }

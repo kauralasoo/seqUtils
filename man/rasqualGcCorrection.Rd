@@ -2,22 +2,23 @@
 % Please edit documentation in R/qtl_rasqual.R
 \name{rasqualGcCorrection}
 \alias{rasqualGcCorrection}
-\title{Correct rasqual size factors matrix for gc content}
+\title{Estimate the effect of GC-bias for each feature in each sample.}
 \usage{
-rasqualGcCorrection(Y, gcvec, PLOT = F)
+rasqualGcCorrection(Y, gene_metadata, PLOT = F)
 }
 \arguments{
 \item{Y}{Matrix of read counts}
 
-\item{gcvec}{Vector of GC content percentages}
+\item{gene_metadata}{Data frame with gene metadata.
+(required columnss: gene_id, percentage_gc_content)}
 
 \item{PLOT}{}
 }
 \value{
-Matrix of GC-corrected library sizes.
+Matrix of GC-bias offsets for each gene in each condition.
 }
 \description{
-Correct rasqual size factors matrix for gc content
+This function does not correct for differences in library size between samples.
 }
 \author{
 Natsuhiko Kumasaka
