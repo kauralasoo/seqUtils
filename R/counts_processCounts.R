@@ -57,7 +57,7 @@ calculateCQN <- function(counts_matrix, gene_metadata, return_type = "normalised
   }
 }
 
-calculateNormFactors <- function(counts_matrix, method = "RLE", output = "rasqual"){
+calculateNormFactors <- function(counts_matrix, method = "RLE"){
   #Calculate norm factors for a counts matrix
   dge = edgeR::DGEList(counts = counts_matrix)
   dge = edgeR::calcNormFactors(dge, method = method)

@@ -33,14 +33,25 @@ saveRasqualMatrices <- function(data_list, output_dir, file_suffix = "expression
 #'
 #' @return Matrix of gene-specifc offsets.
 #' @export
-rasqualCalculateSampleOffsets <- function(counts, gene_metadata, gc_correct = TRUE){
+rasqualCalculateSampleOffsets <- function(counts, gene_metadata, method = "library_size", gc_correct = TRUE){
   
-  #Calculate library sizes
-  library_size = colSums(counts)
-  size_factors = library_size/mean(library_size) #Standardise
-  size_matrix = matrix(rep(size_factors, nrow(counts)), nrow = nrow(counts), byrow = TRUE)
-  rownames(size_matrix) = rownames(counts)
-  colnames(size_matrix) = colnames(counts)
+  if(method == "library_size"){
+    #Calculate library sizes
+    library_size = colSums(counts)
+    size_factors = library_size/mean(library_size) #Standardise
+    size_matrix = matrix(rep(size_factors, nrow(counts)), nrow = nrow(counts), byrow = TRUE)
+    rownames(size_matrix) = rownames(counts)
+    colnames(size_matrix) = colnames(counts)
+  } else if (method == "RLE"){
+    #Calculate RLE estimate of library size instead
+    norm_factors = calculateNormFactors(counts, method = "RLE")
+    size_matrix = matrix(rep(norm_factors$norm_factor, nrow(counts)), nrow = nrow(counts), byrow = TRUE)
+    rownames(size_matrix) = rownames(counts)
+    colnames(size_matrix) = colnames(counts)
+    
+  }else{
+    stop("Invalid method specification.")
+  }
   
   #Apply GC correction
   if(gc_correct == TRUE){
@@ -158,6 +169,22 @@ Quantile <- function(x,k=20){
   k-z
 }
 
+#' Helper function for rasqualGcCorrection
+#' 
+#' @author Natsuhiko Kumasaka
+randomize <-
+  function(x,g=NULL){
+    if(is.null(g)){
+      n=ncol(x);
+      t(apply(x,1,function(xx){xx[order(runif(n))]}))
+    }else{
+      for(i in unique(g)){
+        x[,g==i]=randomize(x[,g==i,drop=F])
+      }
+      x
+    }
+  }
+
 #' Estimate the effect of GC-bias for each feature in each sample.
 #' 
 #' This function does not correct for differences in library size between samples.
@@ -196,6 +223,29 @@ rasqualGcCorrection <- function(Y,gene_metadata,PLOT=F){
   #Add gene ids to rows
   rownames(result_matrix) = rownames(Y)
   return(result_matrix)
+}
+
+rasqualMakeCovariates <- function(counts, size_factors) {
+  
+  #Map parameters to Natsuhiko's variables
+  Y = counts
+  K = size_factors
+  n=ncol(Y)
+  
+  # fpm calculation
+  fpkm=t(t(Y/K+1)/apply(Y/K,2,sum))*1e6 #  /len*1e9
+  
+  # Singular value decomposition
+  fpkm.svd   = svd((log(fpkm)-apply(log(fpkm),1,mean))/apply(log(fpkm),1,sd))
+  fpkm.svd.r = svd(randomize((log(fpkm)-apply(log(fpkm),1,mean))/apply(log(fpkm),1,sd)))
+  
+  # Covariate selection
+  sf=log(apply(Y/K,2,sum))
+  covs=fpkm.svd$v[,1:sum(fpkm.svd$d[-n]>fpkm.svd.r$d[-n])]
+  if(cor(sf,covs[,1])^2<0.9){covs=cbind(sf, covs)}
+  
+  # Write covariates
+  return(covs)
 }
 
 #' Split gene ids into batches for runRasqual.py script
@@ -336,7 +386,31 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
   gc_library_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata)
   saveRasqualMatrices(gc_library_size_list, rasqual_input_folder, file_suffix = "gc_library_size")
   
+  #Export RLE size
+  rle_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata, method = "RLE", gc_correct = FALSE)
+  saveRasqualMatrices(rle_size_list, rasqual_input_folder, file_suffix = "RLE_size")
+  
+  #Export GC-corrected RLE sizes
+  gc_rle_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata, method = "RLE")
+  saveRasqualMatrices(gc_rle_size_list, rasqual_input_folder, file_suffix = "gc_RLE_size")
+  
   #Export offsets from the cqn pacakge
+  
+  #Calculate covariates using Natsuhiko's SVD code
+  covariates_list = lapply(condition_list, function(x){
+    sf = rasqualCalculateSampleOffsets(x$counts, x$gene_metadata)
+    covariates = rasqualMakeCovariates(x$counts, sf)
+    return(covariates)
+  })
+  saveRasqualMatrices(covariates_list, rasqual_input_folder, file_suffix = "svd_covariates")
+  
+  #Extract covariates from sample metadata
+  meta_cov_list = lapply(condition_list, function(x){
+    meta_matrix = dplyr::select(x$sample_metadata, sample_id, sex_binary, PEER_factor_1:PEER_factor_10)
+    cov_matrix = rasqualMetadataToCovariates(meta_matrix)[,1:5]
+    return(cov_matrix)
+  })
+  saveRasqualMatrices(meta_cov_list, rasqual_input_folder, file_suffix = "PEER_covariates")
   
   #Save feature names to disk
   feature_names = rownames(counts_list[[1]])
@@ -349,4 +423,9 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
               row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
 }
 
+rasqualMetadataToCovariates <- function(sample_metadata){
+  cov_matrix = dplyr::select(sample_metadata, -sample_id) %>% as.data.frame()
+  row.names(cov_matrix) = meta_matrix$sample_id
+  return(cov_matrix)
+}
 
