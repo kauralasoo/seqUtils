@@ -21,13 +21,32 @@ saveRasqualMatrices <- function(data_list, output_dir, file_suffix = "expression
   }
 }
 
-rasqualSizeFactorsMatrix <- function(expression_list, factor_name, standardise = TRUE){
-  factor_vector = expression_list$norm_factor[,factor_name]
-  if (standardise){
-    factor_vector = factor_vector/mean(factor_vector) #Divide by mean library size
+#' Calculate sample-specic offsets for RASQUAL
+#'
+#'  Calculate offset values for each gene in each condition that
+#'  correct for library size and GC content bias.  
+#'
+#' @param counts Matrix of read counts (genes in rows, samples in columns)
+#' @param gene_metadata Matrix of gene metadata (required columns: gene_id, precentage_gc_content). 
+#' Used for GC content bias correction. 
+#' @param gc_correct If true then correct for GC content bias in addition to library size.
+#'
+#' @return Matrix of gene-specifc offsets.
+#' @export
+rasqualCalculateSampleOffsets <- function(counts, gene_metadata, gc_correct = TRUE){
+  
+  #Calculate library sizes
+  library_size = colSums(counts)
+  size_factors = library_size/mean(library_size) #Standardise
+  size_matrix = matrix(rep(size_factors, nrow(counts)), nrow = nrow(counts), byrow = TRUE)
+  rownames(size_matrix) = rownames(counts)
+  colnames(size_matrix) = colnames(counts)
+  
+  #Apply GC correction
+  if(gc_correct == TRUE){
+    gc_factor = rasqualGcCorrection(counts, gene_metadata)
+    size_matrix = size_matrix * gc_factor
   }
-  size_matrix = matrix(rep(factor_vector, nrow(expression_list$counts)), nrow = nrow(expression_list$counts), byrow = TRUE)
-  rownames(size_matrix) = rownames(expression_list$counts)
   return(size_matrix)
 }
 
@@ -310,10 +329,12 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
   saveFastqtlMatrices(sg_map, rasqual_input_folder, file_suffix = "sg_map", col_names = FALSE)
   
   #Export library size
-  library_size_list = lapply(condition_list, rasqualSizeFactorsMatrix, "library_size")
+  library_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata, gc_correct = FALSE)
   saveRasqualMatrices(library_size_list, rasqual_input_folder, file_suffix = "library_size")
   
   #Export GC-corrected library sizes
+  gc_library_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata)
+  saveRasqualMatrices(gc_library_size_list, rasqual_input_folder, file_suffix = "gc_library_size")
   
   #Export offsets from the cqn pacakge
   
