@@ -148,6 +148,16 @@ countSnpsOverlapingExons <- function(gene_metadata, snp_coords, cis_window = 5e5
 #' @return data_frame
 #' @export
 importRasqualTable <- function(path){
+  rasqual_results = readr::read_delim(path, delim = "\t", col_types = "ccciddddddddiii",col_names = FALSE)
+  colnames(rasqual_results) = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "HWE", "IA", "chisq", "effect_size", "delta", "phi", "overdisp", "n_feature_snps", "n_cis_snps", "converged")
+  
+  rasqual_pvalues = dplyr::filter(rasqual_results, snp_id != "SKIPPED") %>%
+    dplyr::mutate(p_nominal = pchisq(chisq, df = 1, lower = FALSE))
+  
+  return(rasqual_pvalues)
+}
+
+importRasqualTableOld <- function(path){
   rasqual_results = readr::read_delim(path, delim = "\t", col_types = "cccidddiii",col_names = FALSE)
   colnames(rasqual_results) = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "chisq", "pi", "n_feature_snps", "n_cis_snps", "converged")
   
@@ -156,6 +166,7 @@ importRasqualTable <- function(path){
   
   return(rasqual_pvalues)
 }
+
 
 #' Helper function for rasqualGcCorrection
 #' 
@@ -252,16 +263,46 @@ rasqualMakeCovariates <- function(counts, size_factors) {
 #'
 #' @param gene_metadata Data frame with gene metadata (gene_id column required)
 #' @param batch_size Number of genes in a batch
+#' @param batch_prefix Prefix of the batch id. Useful if combining results from 
+#' multiple calls to rasqualConstructGeneBatches
 #'
 #' @return Data frame of gene batches (columns: batch_id, gene_ids)
 #' @export
-rasqualConstructGeneBatches <- function(gene_metadata, batch_size){
+rasqualConstructGeneBatches <- function(gene_metadata, batch_size, batch_prefix = "batch"){
   batch_df = dplyr::select(gene_metadata, gene_id) %>%
     dplyr::mutate(batch_number = splitIntoBatches(length(gene_id), batch_size)) %>%
-    dplyr::mutate(batch_id = paste("batch", batch_number, sep = "_")) %>% 
+    dplyr::mutate(batch_id = paste(batch_prefix, batch_number, sep = "_")) %>% 
     dplyr::group_by(batch_id) %>%
     dplyr::summarize(gene_ids = paste(gene_id, collapse = ","))
   return(batch_df)
+}
+
+
+#' Split genes into different batch sizes based on how many cis and feature SNPs they have.
+#'
+#' This script calculates the number of tests required for each gene (feature_snp_count * cis_snp_count)
+#' and splits genes into four groups based on this value (<15,000; 15,000 to 50,000; 50,000 to 100,000 and > 100,000).
+#' @param gene_metadata Data frame with gene meta data, required columns: gene_id, feature_snp_count, cis_snp_count.
+#' @param batch_sizes Vector of length 4. Contains the number of gene in a batch for each of the four groups.
+#'
+#' @return Data frame of genes split into batches.
+#' @export
+rasqualOptimisedGeneBatches <- function(gene_metadata, batch_sizes = c(20,8,3,1)){
+  #Calculate the number of tests
+  gene_metadata = dplyr::mutate(gene_metadata, test_count = feature_snp_count*cis_snp_count)
+  
+  #Split genes into batches based on the number of tests
+  quick_genes = dplyr::filter(gene_metadata, test_count < 15000) %>% 
+    rasqualConstructGeneBatches(batch_sizes[1], "batch_1")
+  medium_genes = dplyr::filter(gene_metadata, test_count >= 15000, test_count < 50000) %>%
+    rasqualConstructGeneBatches(batch_sizes[2], "batch_2")
+  slow_genes = dplyr::filter(gene_metadata, test_count >= 50000, test_count < 100000)%>%
+    rasqualConstructGeneBatches(batch_sizes[3],"batch_3")
+  extra_slow_genes = dplyr::filter(gene_metadata, test_count >= 100000)%>%
+    rasqualConstructGeneBatches(batch_sizes[4],"batch_4")
+  
+  batches = rbind(quick_genes, medium_genes, slow_genes, extra_slow_genes)
+  return(batches)
 }
 
 #' Find SNP with minimal p-value per gene.
@@ -412,6 +453,14 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
   })
   saveRasqualMatrices(meta_cov_list, rasqual_input_folder, file_suffix = "PEER_covariates")
   
+  #Extract covariates from sample metadata
+  meta_cov_list = lapply(condition_list, function(x){
+    meta_matrix = dplyr::select(x$sample_metadata, sample_id, sex_binary, PEER_factor_1:PEER_factor_10)
+    cov_matrix = rasqualMetadataToCovariates(meta_matrix)[,1:3]
+    return(cov_matrix)
+  })
+  saveRasqualMatrices(meta_cov_list, rasqual_input_folder, file_suffix = "PEER_covariates_n3")
+  
   #Save feature names to disk
   feature_names = rownames(counts_list[[1]])
   write.table(feature_names, file.path(rasqual_input_folder, "feature_names.txt"), 
@@ -425,7 +474,7 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
 
 rasqualMetadataToCovariates <- function(sample_metadata){
   cov_matrix = dplyr::select(sample_metadata, -sample_id) %>% as.data.frame()
-  row.names(cov_matrix) = meta_matrix$sample_id
+  row.names(cov_matrix) = sample_metadata$sample_id
   return(cov_matrix)
 }
 

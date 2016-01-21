@@ -4,12 +4,15 @@
 \alias{rasqualConstructGeneBatches}
 \title{Split gene ids into batches for runRasqual.py script}
 \usage{
-rasqualConstructGeneBatches(gene_metadata, batch_size)
+rasqualConstructGeneBatches(gene_metadata, batch_size, batch_prefix = "batch")
 }
 \arguments{
 \item{gene_metadata}{Data frame with gene metadata (gene_id column required)}
 
 \item{batch_size}{Number of genes in a batch}
+
+\item{batch_prefix}{Prefix of the batch id. Useful if combining results from 
+multiple calls to rasqualConstructGeneBatches}
 }
 \value{
 Data frame of gene batches (columns: batch_id, gene_ids)

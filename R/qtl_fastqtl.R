@@ -43,6 +43,7 @@ importFastQTLTable <- function(file_path){
 #' @export 
 constructFastQTLGenePos <- function(gene_metadata){
 	genepos = dplyr::select(gene_metadata, chr, start, end, gene_id) %>% 
+	  dplyr::arrange(chr, start) %>%
     dplyr::rename_("left" = "start", "right" = "end", "geneid" = "gene_id", "#chr" = "chr")
   return(genepos)
 }
@@ -57,12 +58,38 @@ constructFastQTLGenePos <- function(gene_metadata){
 prepareFastqtlMatrix <- function(matrix, genepos){
   res = dplyr::mutate(as.data.frame(matrix), geneid = rownames(matrix)) %>%
     dplyr::select(geneid, everything()) %>%
-    dplyr::left_join(genepos, ., by = "geneid")
+    dplyr::left_join(genepos, ., by = "geneid") %>%
+    dplyr::arrange()
 }
 
-prepareFastqtlCovariates <- function(covariates, selected_rows){
-  cov = covariates[selected_rows,]
-  new_cov = dplyr::mutate(as.data.frame(cov), id = rownames(cov)) %>%
-    dplyr::select(id, everything())
-  return(new_cov)
+fastqtlMetadataToCovariates <- function(metadata){
+  genotype_ids = metadata$genotype_id
+  genotype_position = which(colnames(metadata) == "genotype_id")
+  covariate_ids = colnames(metadata)[-genotype_position]
+  cov_matrix = t(metadata[-genotype_position]) %>% as.data.frame()
+  colnames(cov_matrix) = genotype_ids
+  cov_matrix = dplyr::mutate(cov_matrix, id = covariate_ids) %>% dplyr::select(id, everything())
+  return(cov_matrix)
+}
+
+exportDataForFastQTL <- function(condition_list, fastqtl_input_folder, n_chunks = 25){
+  
+  #Save expression datasets to disk
+  fastqtl_genepos = constructFastQTLGenePos(condition_list[[1]]$gene_metadata)
+  cqn_list = lapply(condition_list, function(x){x$cqn})
+  fastql_cqn_list = lapply(cqn_list, prepareFastqtlMatrix, fastqtl_genepos)
+  saveFastqtlMatrices(fastql_cqn_list, fastqtl_input_folder, file_suffix = "cqn_expression")
+  
+  #Extract covariates from sample metadata
+  meta_cov_list = lapply(condition_list, function(x){
+    meta_matrix = dplyr::select(x$sample_metadata, genotype_id, sex_binary, PEER_factor_1:PEER_factor_10)
+    cov_matrix = fastqtlMetadataToCovariates(meta_matrix)[1:5,]
+    return(cov_matrix)
+  })
+  saveFastqtlMatrices(meta_cov_list, fastqtl_input_folder, file_suffix = "covariates")
+  
+  #Construct chunks table
+  chunks_matrix = data.frame(chunk = seq(1:n_chunks), n = n_chunks)
+  write.table(chunks_matrix, file.path(fastqtl_input_folder, "chunk_table.txt"), 
+              row.names = FALSE, quote = FALSE, col.names = FALSE, sep = " ")
 }
