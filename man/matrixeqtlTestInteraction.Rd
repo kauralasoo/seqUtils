@@ -5,7 +5,7 @@
 \title{Use MatrixEQTL to test interaction between genotype and two conditions}
 \usage{
 matrixeqtlTestInteraction(conditions, gene_snp_pairs, expression_list,
-  genotype_list)
+  genotype_list, covariate_names = NULL)
 }
 \arguments{
 \item{conditions}{Character vector containing the names of the two conditions}
@@ -15,6 +15,9 @@ matrixeqtlTestInteraction(conditions, gene_snp_pairs, expression_list,
 \item{expression_list}{List with expression data.}
 
 \item{genotype_list}{List with genotype data.}
+
+\item{covariates_names}{Names of the columns in the expression_list$sample_metadata table 
+that will be used as covariates for the matrixEQTL model.}
 }
 \value{
 Tidy table with interaction testing results

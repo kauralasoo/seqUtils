@@ -387,10 +387,10 @@ fetchSQLite <- function(db_table, selected_gene_id = NULL, selected_snp_id = NUL
 
 #' Fetch multiple genes from SQLite database
 #' NOTE: This implementation is extremely inefficient
-fetchMultipleGenes <- function(gene_ids, db_table){
+fetchMultipleGenes <- function(gene_snp_pairs, db_table){
   
-  gene_id_list = idVectorToList(gene_ids)
-  result = lapply(gene_id_list, function(gene_id, db){ fetchSQLite(db, selected_gene_id = gene_id) }, db_table) %>%
+  result = lapply(dlply(gene_snp_pairs, c("gene_id", "snp_id")), 
+                  function(x, db){ fetchSQLite(db, selected_gene_id = x$gene_id, selected_snp_id = x$snp_id) }, db_table) %>%
     ldply(.id = NULL)
   return(result)
 }

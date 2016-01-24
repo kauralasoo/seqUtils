@@ -93,7 +93,7 @@ calculatePermutationPvalues <- function(raw_pvalues, max_permutation_pvalues){
 filterInteractionResults <- function(conditions, interaction_result, pvalue_list, fdr_thresh = 0.1){
   
   #Filter interaction tests by p-value
-  interaction_candidates = dplyr::filter(interaction_result, p_fdr < fdr_thresh)
+  interaction_candidates = dplyr::filter(interaction_result, p_fdr <= fdr_thresh)
   
   #Extract RASQUAL results for significant gene-SNP pairs
   res_A = dplyr::semi_join(pvalue_list[[ conditions[1] ]], interaction_candidates, by = c("gene_id", "snp_id")) %>%
@@ -129,7 +129,7 @@ filterInteractionResults <- function(conditions, interaction_result, pvalue_list
 filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
   
   #Detect features with different lead SNPs
-  lead_different = tbl_df(joint_pairs) %>% 
+  lead_different = tbl_df(feature_snp_pairs) %>% 
     group_by(gene_id) %>% 
     dplyr::summarise(snp1 = snp_id[1], snp2 = snp_id[2]) %>% 
     dplyr::filter(snp1 != snp2)
@@ -143,11 +143,28 @@ filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
   
   #Keep only one SNP for features where R2 > R2_thresh
   shared_snps = dplyr::filter(lead_different_r2, R2 > R2_thresh)
-  shared_random = dplyr::semi_join(joint_pairs, shared_snps, by = "gene_id") %>% 
+  shared_random = dplyr::semi_join(feature_snp_pairs, shared_snps, by = "gene_id") %>% 
     dplyr::group_by(gene_id) %>% dplyr::filter(row_number() == 1) 
   
   #Consturct a new feature_snp df
-  unshared = dplyr::anti_join(joint_pairs, shared_snps, by = "gene_id")
+  unshared = dplyr::anti_join(feature_snp_pairs, shared_snps, by = "gene_id")
   result = rbind(shared_random, unshared)
   return(result)
 }
+
+testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combined_expression_data, covariate_names, vcf_file, fdr_thresh = 0.1){
+  #Extraxt gene name map
+  gene_name_map = dplyr::select(combined_expression_data$gene_metadata, gene_id, gene_name)
+  
+  #Find independent pairs of SNPs
+  min_pvalue_df = ldply(rasqual_min_hits[condition_pair], .id = "condition_name")
+  joint_pairs = dplyr::select(min_pvalue_df, gene_id, snp_id) %>% unique()
+  joint_pairs_filtered = filterHitsR2(joint_pairs, vcf_file$genotypes, 0.2)
+
+  #Test pairwise interactions using matrixeQTL
+  interaction_df = matrixeqtlTestInteraction(condition_pair, joint_pairs_filtered, combined_expression_data, vcf_file, covariate_names)
+  interaction_effects = filterInteractionResults(condition_pair, interaction_df, rasqual_selected_pvalues, fdr_thresh = fdr_thresh) %>%
+    dplyr::left_join(gene_name_map, by = "gene_id")
+  return(interaction_effects)
+}
+

@@ -31,10 +31,10 @@ plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_
   plot_df = dplyr::left_join(sample_metadata, exprs_df, by ="sample_id") %>%
     left_join(genotype_df, by = "genotype_id")
   
-  plot = ggplot2::ggplot(plot_df, aes(x = genotype_value, y = norm_exp)) + 
+  plot = ggplot2::ggplot(plot_df, ggplot2::aes(x = genotype_value, y = norm_exp)) + 
     ggplot2::facet_wrap(~ condition_name) + 
     ggplot2::geom_boxplot(outlier.shape = NA) + 
-    ggplot2::geom_jitter(position = position_jitter(width = .1)) + 
+    ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .1)) + 
     ggplot2::ylab("Normalized expression") +
     ggplot2::xlab(genotype_id) + 
     ggplot2::labs(title = gene_name)
@@ -88,6 +88,6 @@ savePlots <- function(plot_list, path, width, height){
     snp_id = plot$labels$x
     if (!dir.exists(path)){ dir.create(path) } #Create dir if not there
     file_name = file.path(path, paste(gene_name, "-",snp_id, ".pdf", sep = ""))
-    ggsave(file_name, plot, width = width, height = height)
+    ggplot2::ggsave(file_name, plot, width = width, height = height)
   }
 }

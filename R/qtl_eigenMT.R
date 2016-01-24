@@ -44,6 +44,7 @@ eigenMTImportResults <- function(file_path){
   result = readr::read_delim(file_path, delim = "\t", col_types = "ccdddddd") %>%
     dplyr::transmute(gene_id = gene, snp_id = snps, chisq = statistic, p_nominal = pvalue, 
                      p_eigen = BF, n_tests = TESTS, p_fdr = p.adjust(p_eigen, method = "fdr")) %>% 
-    dplyr::arrange(p_eigen)
+    dplyr::arrange(p_eigen) %>%
+    dplyr::filter(snp_id != "snps")
 }
 

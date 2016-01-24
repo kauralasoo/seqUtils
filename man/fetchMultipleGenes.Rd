@@ -5,7 +5,7 @@
 \title{Fetch multiple genes from SQLite database
 NOTE: This implementation is extremely inefficient}
 \usage{
-fetchMultipleGenes(gene_ids, db_table)
+fetchMultipleGenes(gene_snp_pairs, db_table)
 }
 \description{
 Fetch multiple genes from SQLite database

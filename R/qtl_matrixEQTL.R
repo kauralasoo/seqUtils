@@ -72,9 +72,31 @@ runMatrixEQTL <- function(exp_data, geno_data, snpspos, genepos, covariates = NU
   return(me)
 }
 
+#' Convert gene_metadata table into a gene positions data frame suitable for MatrixEQTL.
+#'
+#' @param gene_metadata Data frame with gene metadata. Required columns: gene_id, chr, start, end)
+#'
+#' @return Gene postion data frame for matrixEQTL.
+#' @export
 constructMatrixEQTLGenePos <- function(gene_metadata){
   res = dplyr::transmute(gene_metadata, geneid = gene_id, chr, left = start, right = end)
   return(res)
+}
+
+#' Convert sample_metadata into a covariates matrix suitable for matrixEQTL
+#'
+#' @param sample_metadata Sample metadata matrix
+#' @param covariate_names Vector of columns names that will be used as covariates.
+#' @param id_column Name of the column that will be used as column names for the covariates matrix.
+#' Default sample id.
+#'
+#' @return Covariates matrix suitable for matrixEQTL.
+#' @export
+constructMatrixEQTLCovariates <- function(sample_metadata, covariate_names, id_column = "sample_id"){
+  cov_matrix = t(sample_metadata[,covariate_names])
+  col_ids = as.data.frame(sample_metadata)[,id_column]
+  colnames(cov_matrix) = col_ids
+  return(cov_matrix)
 }
 
 #' Use MatrixEQTL to test interaction between genotype and two conditions
@@ -83,10 +105,12 @@ constructMatrixEQTLGenePos <- function(gene_metadata){
 #' @param gene_snp_pairs Data frame with two columns: gene_id, snp_id.
 #' @param expression_list List with expression data.
 #' @param genotype_list List with genotype data.
-#'
+#' @param covariates_names Names of the columns in the expression_list$sample_metadata table 
+#' that will be used as covariates for the matrixEQTL model.
+#' 
 #' @return Tidy table with interaction testing results
 #' @export
-matrixeqtlTestInteraction <- function(conditions, gene_snp_pairs, expression_list, genotype_list){
+matrixeqtlTestInteraction <- function(conditions, gene_snp_pairs, expression_list, genotype_list, covariate_names = NULL){
   #Extract gene and snp ids
   gene_ids = unique(gene_snp_pairs$gene_id)
   snp_ids = unique(gene_snp_pairs$snp_id)
@@ -97,13 +121,15 @@ matrixeqtlTestInteraction <- function(conditions, gene_snp_pairs, expression_lis
   geno_matrix = extractSubset(design_matrix, genotype_list$genotypes[snp_ids,], 
                               old_column_names = "genotype_id", new_column_names = "sample_id")
   snpspos = dplyr::filter(genotype_list$snpspos, snpid %in% snp_ids) %>% as.data.frame()
-  genepos = constructMatrixEQTLGenePos(expression_list$gene_metadata) %>% dplyr::filter(geneid %in% gene_ids)
+  genepos = constructMatrixEQTLGenePos(expression_list$gene_metadata) %>% 
+    dplyr::filter(geneid %in% gene_ids) %>%
+    as.data.frame()
   
   #Construct condition covariate
-  cov = dplyr::mutate(design_matrix, condition_cov = ifelse(condition_name == conditions[1], 0, 1))$condition_cov
-  cov_matrix = t(as.matrix(cov))
-  colnames(cov_matrix) = design_matrix$sample_id
-  
+  design_matrix = dplyr::mutate(design_matrix, condition_cov = ifelse(condition_name == conditions[1], 0, 1))
+  joint_covariate_names = c(covariate_names, "condition_cov")
+  cov_matrix = constructMatrixEQTLCovariates(design_matrix, joint_covariate_names)
+
   interaction_res = runMatrixEQTL(exp_matrix, geno_matrix, snpspos, genepos, cov_matrix, 
                                   pvOutputThreshold = 1, model = modelLINEAR_CROSS)
   interaction_table = interaction_res$cis$eqtls %>% dplyr::rename(gene_id = gene, snp_id = snps, p_nominal = pvalue) %>% 
@@ -114,16 +140,3 @@ matrixeqtlTestInteraction <- function(conditions, gene_snp_pairs, expression_lis
     dplyr::select(-FDR)
   return(interaction_table)
 }
-
-filterEQTLs <- function(data_frame, gene_id_name_map, fdr_cutoff = 0.1){
-  dat = dplyr::filter(data_frame, FDR < fdr_cutoff) %>% 
-    dplyr::rename(gene_id = gene, snp_id = snps) %>%
-    dplyr::group_by(gene_id) %>% 
-    dplyr::arrange(pvalue) %>% 
-    dplyr::filter(row_number() == 1) %>%
-    dplyr::ungroup() %>% 
-    dplyr::arrange(pvalue) %>%
-    dplyr::left_join(gene_id_name_map, by = "gene_id")
-  return(dat)
-}
-
