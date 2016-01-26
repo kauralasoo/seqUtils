@@ -128,28 +128,25 @@ filterInteractionResults <- function(conditions, interaction_result, pvalue_list
 #' @export
 filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
   
-  #Detect features with different lead SNPs
-  lead_different = tbl_df(feature_snp_pairs) %>% 
-    group_by(gene_id) %>% 
-    dplyr::summarise(snp1 = snp_id[1], snp2 = snp_id[2]) %>% 
-    dplyr::filter(snp1 != snp2)
+  #Count SNPs per gene
+  snp_count = dplyr::group_by(feature_snp_pairs, gene_id) %>% dplyr::summarise(snp_count = length(snp_id))
+  single_snps = dplyr::semi_join(joint_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
+  multi_snps = dplyr::anti_join(joint_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
   
-  #Calculated R2 between pairs of SNPs for each features
-  rsquare = dlply(lead_different, .variables = "gene_id") %>% 
-    lapply(function(x,genotypes){cor(genotypes[x$snp1,], genotypes[x$snp2,], use = "complete.obs")^2}, genotypes) %>% 
-    ldply(.id = "gene_id") %>%
-    dplyr::transmute(gene_id = as.character(gene_id), R2 = V1)
-  lead_different_r2 = dplyr::left_join(lead_different, rsquare, by = "gene_id")
-  
-  #Keep only one SNP for features where R2 > R2_thresh
-  shared_snps = dplyr::filter(lead_different_r2, R2 > R2_thresh)
-  shared_random = dplyr::semi_join(feature_snp_pairs, shared_snps, by = "gene_id") %>% 
-    dplyr::group_by(gene_id) %>% dplyr::filter(row_number() == 1) 
-  
-  #Consturct a new feature_snp df
-  unshared = dplyr::anti_join(feature_snp_pairs, shared_snps, by = "gene_id")
-  result = rbind(shared_random, unshared)
+  #Filter genes with multiple genes
+  multi_snp_list = plyr::dlply(multi_snps, "gene_id")
+  multi_snp_filtered_list = lapply(multi_snp_list, filterGeneR2, genotypes, R2_thresh)
+  multi_snp_filtered = ldply(multi_snp_filtered_list, .id = NULL)
+  result = rbind(single_snps, multi_snp_filtered)
+  result = dplyr::filter(result, !is.na(gene_id)) #Sometime NAs are generated, need to figure out why.
   return(result)
+}
+
+#Helper function for filterHitsR2
+filterGeneR2 <- function(gene_df, genotypes, r2_thresh){
+  r2 = cor(t(genotypes[gene_df$snp_id,]))[1,]^2
+  r2[1] = 0
+  return(gene_df[r2 < r2_thresh,])
 }
 
 testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combined_expression_data, covariate_names, vcf_file, fdr_thresh = 0.1){
@@ -186,4 +183,54 @@ clusterBetasKmeans <- function(beta_df, k){
   beta_df$cluster_id = clustering$cluster
   return(beta_df)
 }
+
+#' Test for interaction between genotype and condition using ANOVA model
+#'
+#' @param gene_id Tested gene id
+#' @param snp_id Tested SNP id
+#' @param eqtl_data_list Exression dataset
+#' @param vcf_file VCF file from gdsToMatrix() function
+#' @param qtl_formula Formula for the model with just genotype and condition terms
+#' @param interaction_formula Formula for the model with interaction term betweeb genotype and condition
+#'
+#' @return Either a pvalue (if return_value == "ponly") or the full linear model object.
+#' @export
+testInteraction <- function(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
+  #Test for interaction
+  sample_meta = eqtl_data_list$sample_metadata
+  
+  #Extract data
+  exp_data = data_frame(sample_id = colnames(eqtl_data_list$cqn), expression = eqtl_data_list$cqn[gene_id,])
+  geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
+  
+  sample_data = dplyr::left_join(sample_meta, exp_data, by = "sample_id") %>%
+    dplyr::left_join(geno_data, by = "genotype_id")
+  
+  #apply two models to the data and compare them using anova
+  no_interaction = lm(qtl_formula, as.data.frame(sample_data))
+  interaction = lm(interaction_formula, as.data.frame(sample_data))
+  res = anova(no_interaction, interaction)
+  
+  #Return value
+  if(return_value == "ponly"){
+    return(res[[6]])
+  }
+  else{
+    return(list(anova = res, interaction_model = interaction))
+  }
+}
+
+testMultipleInteractions <- function(snps_df, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
+  #Plot eQTL results for a list of gene and SNP pairs.
+  result = list()
+  for(i in 1:nrow(snps_df)){
+    gene_id = snps_df[i,]$gene_id
+    snp_id = snps_df[i,]$snp_id
+    print(gene_id)
+    test = testInteraction(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value)
+    result[[paste(gene_id,snp_id, sep = ":")]] = test
+  }
+  return(result)
+}
+
 
