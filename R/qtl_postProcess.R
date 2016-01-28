@@ -165,25 +165,6 @@ testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combin
   return(interaction_effects)
 }
 
-
-extractBetasFromList <- function(gene_snp_pairs, rasqual_result_list){
-  betas_list = lapply(rasqual_result_list, function(x) dplyr::select(x, gene_id, snp_id, beta))
-  res = gene_snp_pairs
-  for (i in seq_along(names(rasqual_result_list))){
-    res = dplyr::left_join(res, betas_list[[i]], by = c("gene_id", "snp_id"))
-  }
-  colnames(res)[3:ncol(res)] = names(rasqual_result_list)
-  return(res)
-}
-
-clusterBetasKmeans <- function(beta_df, k){
-  beta_matrix = abs(dplyr::select(beta_df, -gene_id, -snp_id))
-  beta_matrix = beta_matrix/apply(beta_matrix, 1, max) #Scale by maximum beta for each gene-snp pair
-  clustering = kmeans(beta_matrix, k, nstart = 100)
-  beta_df$cluster_id = clustering$cluster
-  return(beta_df)
-}
-
 #' Test for interaction between genotype and condition using ANOVA model
 #'
 #' @param gene_id Tested gene id
