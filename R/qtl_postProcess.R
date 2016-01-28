@@ -138,14 +138,14 @@ filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
   multi_snp_filtered_list = lapply(multi_snp_list, filterGeneR2, genotypes, R2_thresh)
   multi_snp_filtered = ldply(multi_snp_filtered_list, .id = NULL)
   result = rbind(single_snps, multi_snp_filtered)
-  result = dplyr::filter(result, !is.na(gene_id)) #Sometime NAs are generated, need to figure out why.
   return(result)
 }
 
 #Helper function for filterHitsR2
 filterGeneR2 <- function(gene_df, genotypes, r2_thresh){
-  r2 = cor(t(genotypes[gene_df$snp_id,]))[1,]^2
-  r2[1] = 0
+  genotype_matrix = t(genotypes[gene_df$snp_id,])
+  r2 = cor(genotype_matrix, use = "pairwise.complete.obs")[1,]^2
+  r2[1] = 0 #Makes it easy to filter by R2 threshold
   return(gene_df[r2 < r2_thresh,])
 }
 
@@ -220,6 +220,7 @@ testInteraction <- function(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formu
   }
 }
 
+#Run testInteraction on a data.frame of gene-SNP pairs
 testMultipleInteractions <- function(snps_df, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
@@ -233,4 +234,14 @@ testMultipleInteractions <- function(snps_df, eqtl_data_list, vcf_file, qtl_form
   return(result)
 }
 
+#Post-process results from testMultipleInteractions
+postProcessInteractionPvalues <- function(pvalue_list){
+  res = plyr::ldply(pvalue_list, .id = "id") %>% 
+    tidyr::separate(id, into = c("gene_id", "snp_id"), sep = ":") %>%
+    dplyr::rename(p_nominal = V2) %>% tbl_df() %>%
+    dplyr::select(gene_id, snp_id, p_nominal) %>%
+    dplyr::mutate(p_fdr = qvalue::qvalue(p_nominal)$qvalues) %>%
+    dplyr::arrange(p_nominal)
+  return(res)
+}
 
