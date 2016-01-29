@@ -23,3 +23,28 @@ calculateClusterSizes <- function(clusters_df, selected_condition = "naive"){
     dplyr::summarise(count = length(cluster_id), condition_name = condition_name[1])
   return(cluster_sizes)
 }
+
+calculateClusterMeans <- function(clusters_df){
+  cluster_means = dplyr::group_by(clusters_df, cluster_id, condition_name) %>% 
+    dplyr::summarise(beta_mean = mean(beta), beta_sd = sd(beta))
+  return(cluster_means)
+}
+
+#Flip the sign of the beta so that the maximal beta is positive
+betaCorrectSign <- function(beta_df){
+  #Calculate the sign for the maximal effect size
+  max_sign = dplyr::group_by(beta_df, gene_id, snp_id) %>% 
+    dplyr::arrange(-abs(beta)) %>% 
+    dplyr::filter(row_number() == 1) %>%
+    dplyr::mutate(max_sign = sign(beta)) %>% 
+    dplyr::select(gene_id, snp_id, max_sign)
+  
+  #Flip the sign of all of the effect sizes
+  beta_correct_sign = dplyr::left_join(beta_df, max_sign, by = c("gene_id", "snp_id")) %>%
+    dplyr::arrange(gene_id, snp_id) %>% 
+    dplyr::transmute(gene_id, snp_id, condition_name, beta = beta*max_sign)
+  return(beta_correct_sign)
+}
+
+
+
