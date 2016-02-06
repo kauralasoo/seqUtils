@@ -41,10 +41,10 @@ eigenMTExportGeneMetadata <- function(gene_metadata, eigenMT_dir){
 }
 
 eigenMTImportResults <- function(file_path){
-  result = readr::read_delim(file_path, delim = "\t", col_types = "ccdddddd") %>%
-    dplyr::transmute(gene_id = gene, snp_id = snps, chisq = statistic, p_nominal = pvalue, 
-                     p_eigen = BF, n_tests = TESTS, p_fdr = p.adjust(p_eigen, method = "fdr")) %>% 
-    dplyr::arrange(p_eigen) %>%
-    dplyr::filter(snp_id != "snps")
+  result = readr::read_delim(file_path, delim = "\t", col_types = "ccdddddd", 
+                             col_names = c("snp_id", "gene_id","chisq","p_nominal", "FDR", "pi", "p_eigen", "n_tests")) %>%
+    dplyr::select(-FDR, -pi) %>%
+    dplyr::mutate(p_fdr = p.adjust(p_eigen, method = "fdr")) %>% 
+    dplyr::arrange(p_eigen)
 }
 

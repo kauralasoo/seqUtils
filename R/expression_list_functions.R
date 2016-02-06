@@ -78,16 +78,6 @@ renameMatrixColumnsInExpressionList <- function(expression_list, old_column_name
   return(result_list)
 }
 
-#' Convert named vector into a tidy data_frame.
-#' 
-#' @param named_vector Named vector.
-#' @return data_frame with two columns: value, sample_id.
-#' @author Kaur Alasoo
-#' @export 
-tidyVector <- function(named_vector){
-  dplyr::data_frame(value = named_vector, sample_id = names(named_vector))
-}
-
 #' For a given gene_id, extract its expression from expression_matrix and join with metadata.
 #' 
 #' @param gene_id Gene id, corresponds to a row name of expression matrix.

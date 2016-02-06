@@ -15,6 +15,18 @@ idVectorToList <- function(id_vector){
   return(id_list)
 }
 
+#' Convert named vector into a tidy data_frame.
+#' 
+#' @param named_vector Named vector.
+#' @return data_frame with two columns: value, sample_id.
+#' @author Kaur Alasoo
+#' @export 
+tidyVector <- function(named_vector, value_id = "value", sample_id = "sample_id"){
+  res = dplyr::data_frame(sample = names(named_vector), value = named_vector)
+  colnames(res) = c(sample_id, value_id)
+  return(res)
+}
+
 listUnion <- function(granges_list){
   #Calculated the union of a GRangesList object
   union_obj = granges_list[[1]]

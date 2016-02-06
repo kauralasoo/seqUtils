@@ -389,8 +389,28 @@ fetchSQLite <- function(db_table, selected_gene_id = NULL, selected_snp_id = NUL
 #' NOTE: This implementation is extremely inefficient
 fetchMultipleGenes <- function(gene_snp_pairs, db_table){
   
+  result = lapply(dlply(gene_snp_pairs, c("gene_id")), 
+                  function(x, db){ fetchSQLite(db, selected_gene_id = x$gene_id) }, db_table) %>%
+    ldply(.id = NULL)
+  return(result)
+}
+
+#' Fetch multiple genes from SQLite database
+#' NOTE: This implementation is extremely inefficient
+fetchMultipleGeneSNPPairs <- function(gene_snp_pairs, db_table){
+  
   result = lapply(dlply(gene_snp_pairs, c("gene_id", "snp_id")), 
                   function(x, db){ fetchSQLite(db, selected_gene_id = x$gene_id, selected_snp_id = x$snp_id) }, db_table) %>%
+    ldply(.id = NULL)
+  return(result)
+}
+
+#' Fetch multiple SNPs from SQLite database
+#' NOTE: This implementation is extremely inefficient
+fetchMultipleSNPs <- function(snp_df, db_table){
+  
+  result = lapply(dlply(snp_df, c("gene_id", "snp_id")), 
+                  function(x, db){ fetchSQLite(db, selected_snp_id = x$snp_id) }, db_table) %>%
     ldply(.id = NULL)
   return(result)
 }
