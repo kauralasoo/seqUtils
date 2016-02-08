@@ -498,3 +498,52 @@ rasqualMetadataToCovariates <- function(sample_metadata){
   return(cov_matrix)
 }
 
+
+tabixFetchGenes <- function(gene_ranges, tabix_file){
+  #Set column names for rasqual
+  rasqual_columns = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "HWE", "IA", "chisq", 
+                      "effect_size", "delta", "phi", "overdisp", "n_feature_snps", "n_cis_snps", "converged")
+  
+  result = list()
+  for (i in seq_along(gene_ranges)){
+    selected_gene_id = gene_ranges[i]$gene_id
+    print(i)
+    tabix_table = scanTabixDataFrame(tabix_file, gene_ranges[i], col_names = rasqual_columns)[[1]] %>%
+      dplyr::filter(gene_id == selected_gene_id)
+    
+    #Add additional columns
+    tabix_table = postprocessRasqualResults(tabix_table)
+    result[[selected_gene_id]] = tabix_table
+  }
+  return(result)
+}
+
+tabixFetchSNPs <- function(snp_ranges, tabix_file){
+  #Set column names for rasqual
+  rasqual_columns = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "HWE", "IA", "chisq", 
+                      "effect_size", "delta", "phi", "overdisp", "n_feature_snps", "n_cis_snps", "converged")
+  
+  tabix_table = scanTabixDataFrame(tabix_file, snp_ranges, col_names = rasqual_columns)
+  tabix_df = plyr::ldply(tabix_table, .id = NULL) %>%
+    postprocessRasqualResults() %>%
+    dplyr::tbl_df()
+  return(tabix_df)
+}
+
+#Helper function for tabixFetchGenes and tabixFetchSNPs
+postprocessRasqualResults <- function(rasqual_df){
+  result = dplyr::mutate(rasqual_df, p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>% #Add nominal p-value
+    dplyr::mutate(MAF = pmin(allele_freq, 1-allele_freq)) %>% #Add MAF
+    dplyr::mutate(beta = -log(effect_size/(1-effect_size),2)) #Calculate beta from rasqual pi
+  return(result)
+}
+
+constructGeneRanges <- function(selected_genes, gene_metadata, cis_window){
+  filtered_metadata = dplyr::semi_join(gene_metadata, selected_genes, by = "gene_id")
+  granges = dplyr::mutate(filtered_metadata, range_start = pmax(0, start - cis_window), range_end = end + cis_window) %>%
+    dplyr::select(gene_id, chr, range_start, range_end) %>%
+    dplyr::transmute(gene_id, seqnames = chr, start = range_start, end = range_end, strand = "*") %>% 
+    dataFrameToGRanges()
+  return(granges)
+}
+

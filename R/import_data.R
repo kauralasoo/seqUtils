@@ -243,3 +243,24 @@ loadFragmentLengths <- function(sample_dir, sample_names, file_suffix = ".fragme
   }
   return(result)
 }
+
+
+scanTabixDataFrame <- function(tabix_file, param, ...){
+  tabix_list = Rsamtools::scanTabix(tabix_file, param = param)
+  df_list = lapply(tabix_list, function(x,...){
+    if(length(x) > 0){
+      if(length(x) == 1){
+        #Hack to make sure that it also works for data frames with only one row
+        #Adds an empty row and then removes it
+        result = paste(paste(x, collapse = "\n"),"\n",sep = "") %>% readr::read_delim(delim = "\t", ...)[1,]
+      }else{
+        result = paste(x, collapse = "\n") %>% readr::read_delim(delim = "\t", ...)
+      }
+    } else{
+      #Return NULL if the nothing is returned from tabix file
+      result = NULL
+    }
+    return(result)
+  }, ...)
+  return(df_list)
+}
