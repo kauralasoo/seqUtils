@@ -8,7 +8,7 @@
 #' @export
 extractConditionFromExpressionList <- function(cond_name, expression_list){
   
-  new_sample_meta = dplyr::filter(expression_list$sample_metadata, condition_name == cond_name)
+  new_sample_meta = dplyr::filter(expression_list$sample_metadata, condition_name %in% cond_name)
   new_counts = expression_list$counts[,new_sample_meta$sample_id]
   new_tpm = expression_list$tpm[,new_sample_meta$sample_id]
   new_cqn = expression_list$cqn[,new_sample_meta$sample_id]

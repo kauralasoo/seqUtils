@@ -287,19 +287,19 @@ rasqualConstructGeneBatches <- function(gene_metadata, batch_size, batch_prefix 
 #'
 #' @return Data frame of genes split into batches.
 #' @export
-rasqualOptimisedGeneBatches <- function(gene_metadata, batch_sizes = c(20,8,3,1)){
+rasqualOptimisedGeneBatches <- function(gene_metadata, batch_sizes = c(20,8,3,1), batch_prefix = "batch"){
   #Calculate the number of tests
   gene_metadata = dplyr::mutate(gene_metadata, test_count = feature_snp_count*cis_snp_count)
   
   #Split genes into batches based on the number of tests
   quick_genes = dplyr::filter(gene_metadata, test_count < 15000) %>% 
-    rasqualConstructGeneBatches(batch_sizes[1], "batch_1")
+    rasqualConstructGeneBatches(batch_sizes[1], paste(batch_prefix, "1", sep = "_"))
   medium_genes = dplyr::filter(gene_metadata, test_count >= 15000, test_count < 50000) %>%
-    rasqualConstructGeneBatches(batch_sizes[2], "batch_2")
+    rasqualConstructGeneBatches(batch_sizes[2], paste(batch_prefix, "2", sep = "_"))
   slow_genes = dplyr::filter(gene_metadata, test_count >= 50000, test_count < 100000)%>%
-    rasqualConstructGeneBatches(batch_sizes[3],"batch_3")
+    rasqualConstructGeneBatches(batch_sizes[3], paste(batch_prefix, "3", sep = "_"))
   extra_slow_genes = dplyr::filter(gene_metadata, test_count >= 100000)%>%
-    rasqualConstructGeneBatches(batch_sizes[4],"batch_4")
+    rasqualConstructGeneBatches(batch_sizes[4],paste(batch_prefix, "4", sep = "_"))
   
   batches = rbind(quick_genes, medium_genes, slow_genes, extra_slow_genes)
   return(batches)
