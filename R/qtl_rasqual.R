@@ -157,17 +157,6 @@ importRasqualTable <- function(path){
   return(rasqual_pvalues)
 }
 
-importRasqualTableOld <- function(path){
-  rasqual_results = readr::read_delim(path, delim = "\t", col_types = "cccidddiii",col_names = FALSE)
-  colnames(rasqual_results) = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "chisq", "pi", "n_feature_snps", "n_cis_snps", "converged")
-  
-  rasqual_pvalues = dplyr::filter(rasqual_results, snp_id != "SKIPPED") %>%
-    dplyr::mutate(p_nominal = pchisq(chisq, df = 1, lower = FALSE))
-  
-  return(rasqual_pvalues)
-}
-
-
 #' Helper function for rasqualGcCorrection
 #' 
 #' @author Natsuhiko Kumasaka
@@ -284,6 +273,7 @@ rasqualConstructGeneBatches <- function(gene_metadata, batch_size, batch_prefix 
 #' and splits genes into four groups based on this value (<15,000; 15,000 to 50,000; 50,000 to 100,000 and > 100,000).
 #' @param gene_metadata Data frame with gene meta data, required columns: gene_id, feature_snp_count, cis_snp_count.
 #' @param batch_sizes Vector of length 4. Contains the number of gene in a batch for each of the four groups.
+#' @param batch_prefix Prefix of the batch id, default "batch".
 #'
 #' @return Data frame of genes split into batches.
 #' @export
@@ -324,94 +314,6 @@ findMinimalSnpPvalues <- function(qtl_df){
     dplyr::ungroup() %>%
     dplyr::arrange(p_nominal) %>%
     dplyr::mutate(p_fdr = p.adjust(p_bonferroni, "fdr"))
-  return(result)
-}
-
-#' Find SNP with minimal p-value per gene from SQLite database.
-#'
-#' Group QTL database by gene, sort by p_nominal, keep SNP with smallest p-value,
-#' correct that using bonferroni correction and then apply FDR correction across genes.
-#'
-#' @param sqlite_path Path to the SQLlite database file with RASQUAL output. 
-#' Table name rasqual (required columns: gene_id, p_nominal, n_cis_snps)
-#'
-#' @return Only gene-SNP pairs with minimal p-values,
-#'  added columns: p_bonferroni, p_fdr.
-#' @export
-findMinimalSnpPvaluesSQLite <- function(sqlite_path){
-  
-  #Connect to database filter by maximal chisq value
-  my_db <- dplyr::src_sqlite(sqlite_path)
-  table = tbl(my_db, sql("SELECT *,MAX(chisq) AS chisq2 FROM rasqual GROUP BY gene_id")) %>% 
-    collect() %>%
-    dplyr::filter(snp_id != "SKIPPED") %>%
-    dplyr::select(-chisq2) %>% #Remove the second copy of chisq column
-    dplyr::mutate(p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>% #Calculate p-value
-    dplyr::group_by(gene_id) %>%
-    dplyr::mutate(p_bonferroni = p.adjust(p_nominal, "bonferroni", n_cis_snps)) %>%
-    dplyr::ungroup() %>%
-    dplyr::arrange(p_nominal) %>%
-    dplyr::mutate(p_fdr = p.adjust(p_bonferroni, "fdr"))
-  return(table)
-}
-
-#' Extract rasqual results for particular gene_id or snp_id from the SQLite database
-#'
-#' Either selected_gene_id or selected_snp_id must be specified. 
-#' 
-#' @param db_table Connection to SQLite database table.
-#' (required columns: gene_id, snp_id, p_nominal, allele_freq).
-#' @param selected_gene_id Id of the selected gene. 
-#' @param selected_snp_id Id of the selected SNP.
-#'
-#' @return data.frame with rasqual results for a particular gene or SNP.
-#' @export
-fetchSQLite <- function(db_table, selected_gene_id = NULL, selected_snp_id = NULL){
-  
-  if(is.null(selected_snp_id) & is.null(selected_gene_id)){
-    stop("Need to specify at least selected_gene_id or selected_snp_id.")
-  } else if (!is.null(selected_snp_id) & !is.null(selected_gene_id)){
-    result = dplyr::filter(db_table, gene_id == selected_gene_id, snp_id == selected_snp_id) %>% dplyr::collect()
-  } else if (!is.null(selected_gene_id)){
-    result = dplyr::filter(db_table, gene_id == selected_gene_id) %>% dplyr::collect()
-  } else {
-    result = dplyr::filter(db_table, snp_id == selected_snp_id) %>% dplyr::collect()
-  }
-  
-  #Add p-value, beta and MAF
-  result = dplyr::mutate(result, p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>%
-    dplyr::mutate(MAF = pmin(allele_freq, 1-allele_freq)) %>%
-    dplyr::mutate(beta = -log(effect_size/(1-effect_size),2)) #Calculate beta from rasqual pi
-  return(result)
-}
-
-#' Fetch multiple genes from SQLite database
-#' NOTE: This implementation is extremely inefficient
-fetchMultipleGenes <- function(gene_snp_pairs, db_table){
-  
-  result = lapply(dlply(gene_snp_pairs, c("gene_id")), 
-                  function(x, db){ fetchSQLite(db, selected_gene_id = x$gene_id) }, db_table) %>%
-    ldply(.id = NULL)
-  return(result)
-}
-
-#' Fetch multiple genes from SQLite database
-#' NOTE: This implementation is extremely inefficient
-fetchMultipleGeneSNPPairs <- function(gene_snp_pairs, db_table){
-  
-  result = lapply(dlply(gene_snp_pairs, c("gene_id", "snp_id")), 
-                  function(x, db){ fetchSQLite(db, selected_gene_id = x$gene_id, selected_snp_id = x$snp_id) }, db_table) %>%
-    ldply(.id = NULL)
-  return(result)
-}
-
-#' Fetch multiple SNPs from SQLite database
-#' NOTE: This implementation is extremely inefficient
-fetchMultipleSNPs <- function(snp_df, db_table){
-  
-  result = lapply(dlply(snp_df, c("gene_id", "snp_id")), 
-                  function(x, db){ fetchSQLite(db, selected_snp_id = x$snp_id) }, db_table) %>%
-    ldply(.id = NULL)
   return(result)
 }
 
@@ -518,6 +420,13 @@ tabixFetchGenes <- function(gene_ranges, tabix_file){
   return(result)
 }
 
+#' Fetch particular SNPs from tabix indexed Rasqual output file.
+#'
+#' @param snp_ranges GRanges object with SNP coordinates.
+#' @param tabix_file Tabix-indexed Rasqual output file.
+#'
+#' @return Data frame that contains all tested rasqual p-values fir each SNP.
+#' @export
 tabixFetchSNPs <- function(snp_ranges, tabix_file){
   #Set column names for rasqual
   rasqual_columns = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "HWE", "IA", "chisq", 

@@ -4,12 +4,15 @@
 \alias{rasqualOptimisedGeneBatches}
 \title{Split genes into different batch sizes based on how many cis and feature SNPs they have.}
 \usage{
-rasqualOptimisedGeneBatches(gene_metadata, batch_sizes = c(20, 8, 3, 1))
+rasqualOptimisedGeneBatches(gene_metadata, batch_sizes = c(20, 8, 3, 1),
+  batch_prefix = "batch")
 }
 \arguments{
 \item{gene_metadata}{Data frame with gene meta data, required columns: gene_id, feature_snp_count, cis_snp_count.}
 
 \item{batch_sizes}{Vector of length 4. Contains the number of gene in a batch for each of the four groups.}
+
+\item{batch_prefix}{Prefix of the batch id, default "batch".}
 }
 \value{
 Data frame of genes split into batches.
