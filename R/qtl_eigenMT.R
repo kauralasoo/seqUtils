@@ -23,6 +23,15 @@ eigenMTExportGenotypes <- function(vcf_file, eigenMT_dir, prefix){
               sep = "\t", quote = FALSE, row.names = FALSE)
 }
 
+
+#' Convert chromosome-wise .gds files into genotype matrices suitable for eigenMT
+#'
+#' @param chromosomes Vector of chromosome names.
+#' @param gds_dir Directory containing the chromosome .gds files.
+#' @param eigenMT_dir Directory for the output files.
+#' @param gds_prefix Prefix of the .gds files
+#'
+#' @export
 eigenMTExportGenotypesByChr <- function(chromosomes, gds_dir, eigenMT_dir, gds_prefix = "chr_"){
   for (chr in chromosomes){
     gds_file = file.path(gds_dir, paste(gds_prefix, chr, ".gds", sep = ""))
@@ -40,6 +49,15 @@ eigenMTExportGeneMetadata <- function(gene_metadata, eigenMT_dir){
   write.table(gene_data, file.path(eigenMT_dir, "gene_positions.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
 }
 
+
+#' Import eigenMT output file into data frame
+#' 
+#' Also performs FDR correction
+#'
+#' @param Path to the eigenMT output file.
+#'
+#' @return Data frame of eigenMT corrected p-values
+#' @export
 eigenMTImportResults <- function(file_path){
   result = readr::read_delim(file_path, delim = "\t", col_types = "ccdddddd", 
                              col_names = c("snp_id", "gene_id","chisq","p_nominal", "FDR", "pi", "p_eigen", "n_tests")) %>%
