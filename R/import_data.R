@@ -252,9 +252,11 @@ scanTabixDataFrame <- function(tabix_file, param, ...){
       if(length(x) == 1){
         #Hack to make sure that it also works for data frames with only one row
         #Adds an empty row and then removes it
-        result = paste(paste(x, collapse = "\n"),"\n",sep = "") %>% readr::read_delim(delim = "\t", ...)[1,]
+        result = paste(paste(x, collapse = "\n"),"\n",sep = "")
+        result = readr::read_delim(result, delim = "\t", ...)[1,]
       }else{
-        result = paste(x, collapse = "\n") %>% readr::read_delim(delim = "\t", ...)
+        result = paste(x, collapse = "\n")
+        result = readr::read_delim(result, delim = "\t", ...)
       }
     } else{
       #Return NULL if the nothing is returned from tabix file
