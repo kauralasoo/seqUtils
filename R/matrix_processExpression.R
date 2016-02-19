@@ -105,3 +105,13 @@ explainPEER <- function(peer_factors, covariates){
   return(results)
 }
 
+tidyDESeq <- function(result, gene_metadata){
+  result_table = result %>% 
+    as.data.frame() %>% 
+    dplyr::mutate(gene_id = rownames(result)) %>% 
+    tbl_df() %>% 
+    dplyr::left_join(gene_metadata, by = "gene_id") %>% 
+    dplyr::arrange(padj) %>%
+    dplyr::select(gene_id, gene_name, everything())
+  return(result_table)
+}

@@ -1,6 +1,6 @@
 plotGene <- function(gene_id, matrix, design, gene_metadata, colors = c("#d95f02","#1b9e77","#7570b3")){
   #Plot the expression values of each gene in different conditions
-  matrix = matrix[,match(rownames(design), colnames(matrix))]
+  matrix = matrix[,match(design$sample_id, colnames(matrix))]
   gene_expression = matrix[gene_id,]
   print(gene_expression)
   design$expression = as.numeric(gene_expression)

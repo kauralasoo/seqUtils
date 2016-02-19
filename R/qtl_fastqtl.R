@@ -31,6 +31,11 @@ importFastQTLTable <- function(file_path){
   table = read.table(file_path, stringsAsFactors = FALSE)
   if(ncol(table) == 11){
     colnames(table) = c("gene_id", "n_cis_snps", "beta1", "beta2", "dummy", "snp_id", "distance","p_nominal", "slope","p_perm","p_beta")
+    table = table %>% tbl_df() %>% 
+      dplyr::filter(!is.na(p_beta)) %>%
+      dplyr::mutate(p_fdr = p.adjust(p_beta, method = "fdr")) %>%
+      dplyr::mutate(qvalue = qvalue::qvalue(p_beta)$qvalue) %>%
+      dplyr::arrange(p_fdr)
   }
   return(table)
 }

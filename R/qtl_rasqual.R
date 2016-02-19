@@ -401,6 +401,14 @@ rasqualMetadataToCovariates <- function(sample_metadata){
 }
 
 
+
+#' Fetch particular genes from tabix indexed Rasqual output file.
+#'
+#' @param gene_ranges GRanges object with coordinates of the cis regions around genes.
+#' @param tabix_file Tabix-indexed Rasqual output file.
+#'
+#' @return List of data frames containing Rasqual results for each gene.
+#' @export
 tabixFetchGenes <- function(gene_ranges, tabix_file){
   #Set column names for rasqual
   rasqual_columns = c("gene_id", "snp_id", "chr", "pos", "allele_freq", "HWE", "IA", "chisq", 
@@ -439,7 +447,7 @@ tabixFetchSNPs <- function(snp_ranges, tabix_file){
   return(tabix_df)
 }
 
-#Helper function for tabixFetchGenes and tabixFetchSNPs
+#' Helper function for tabixFetchGenes and tabixFetchSNPs
 postprocessRasqualResults <- function(rasqual_df){
   result = dplyr::mutate(rasqual_df, p_nominal = pchisq(chisq, df = 1, lower = FALSE)) %>% #Add nominal p-value
     dplyr::mutate(MAF = pmin(allele_freq, 1-allele_freq)) %>% #Add MAF
@@ -447,6 +455,15 @@ postprocessRasqualResults <- function(rasqual_df){
   return(result)
 }
 
+
+#' Construct GRanges object for tabixFetchGenes to fetch cis regions around each gene.
+#'
+#' @param selected_genes data frame containing at least gene_id column.
+#' @param gene_metadata data frame with gene metadata (required columns: gene_id, chr, start, end)
+#' @param cis_window Size fo the cis-window around the gene
+#'
+#' @return GRanges object with cooridnates of cis regions around genes.
+#' @export
 constructGeneRanges <- function(selected_genes, gene_metadata, cis_window){
   filtered_metadata = dplyr::semi_join(gene_metadata, selected_genes, by = "gene_id")
   granges = dplyr::mutate(filtered_metadata, range_start = pmax(0, start - cis_window), range_end = end + cis_window) %>%
