@@ -48,16 +48,7 @@ tidyASECounts <- function(ase_counts){
   return(result)
 }
 
-addVariantGenotype <- function(variant_df, genotypes, snp_col = "snp_id", value_id = "lead_snp"){
-  variant_df = as.data.frame(variant_df)
-  snp_id = variant_df[,snp_col][1]
-  variant_gt = tidyVector(genotypes[snp_id,], value_id = value_id, sample_id = "genotype_id")
-  result = dplyr::left_join(variant_df, variant_gt, by = "genotype_id")
-  return(result)
-}
-
 #Fetch ASE data for a single gene
-
 fetchGeneASEData <- function(gene_ranges, tabix_file, sample_metadata){
   assertthat::assert_that(class(gene_ranges)[1] == "GRanges")
 
@@ -83,6 +74,14 @@ filterASEforPlotting <-function(ase_data){
   return(selected_hets)
 }
 
+#' Convert genotype matrix from gdsToMatrix into a tidy data frame
+#'
+#' @param genotypes Matrix with variants in rows and individuals in columms.
+#' @param selected_snp_id Name for the snp_id column (default: snp_id).
+#' @param value_id Name for the allele dosage column (default: snp_value).
+#'
+#' @return Tidy data frame with one genotype per row.
+#' @export
 tidyGenotypeMatrix <- function(genotypes, selected_snp_id = "snp_id", value_id = "snp_value"){
   rows = rownames(genotypes)
   result = tbl_df(as.data.frame(genotypes)) %>% 
@@ -94,7 +93,7 @@ tidyGenotypeMatrix <- function(genotypes, selected_snp_id = "snp_id", value_id =
 }
 
 aseDataAddGenotypes <- function(ase_data, genotypes){
-  assertthat::not_empty(ase_data) #Make sure data is not empty
+  assertthat::assert_that(nrow(ase_data) > 0)
   
   ase_data_gt = dplyr::left_join(ase_data, tidyGenotypeMatrix(genotypes[unique(ase_data$feature_snp_id),,drop = FALSE], 
         value_id = "feature_snp_value", selected_snp_id = "feature_snp_id"), by = c("feature_snp_id", "genotype_id")) %>%
