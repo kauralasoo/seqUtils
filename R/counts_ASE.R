@@ -92,6 +92,13 @@ tidyGenotypeMatrix <- function(genotypes, selected_snp_id = "snp_id", value_id =
   return(result)
 }
 
+#' Title Add genotype data to tidy ASE data frame.
+#'
+#' @param ase_data Tidy ASE data frame with at least the followign columns: feature_snp_id, lead_snp_id, genptype_id.
+#' @param genotypes Standard genotype matrix (variants in rows, individuals in columns)
+#'
+#' @return ASE data frame that contains genotypes for each individual for each feature snp and lead snp.
+#' @export
 aseDataAddGenotypes <- function(ase_data, genotypes){
   assertthat::assert_that(nrow(ase_data) > 0)
   
