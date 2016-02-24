@@ -107,3 +107,33 @@ mergeATACandRNAEffects <- function(atac_beta_df, rna_qtls, rna_beta_df){
   return(joint_effects)
 }
 
+#' Add gene_id and gene_name to atac hits and rank them by "rank_by" column
+rankAtacSummaries <- function(atac_beta_summaries, joint_effects, rank_by){
+  atac_beta_summaries = dplyr::rename(atac_beta_summaries, peak_id = gene_id) #Rename gene_id to peak_id
+  id_map = dplyr::select(joint_effects, peak_id, gene_id, gene_name, snp_id) %>% unique() #Select columns
+  peak_gene_match = dplyr::left_join(atac_beta_summaries, id_map, by = c("peak_id", "snp_id")) %>% 
+    dplyr::arrange_(rank_by)
+  return(peak_gene_match)
+}
+
+prepareBetasDf <- function(rna_qtls_df, rna_betas, atac_rasqual_list, 
+                           gene_name_map, appear_condition = "IFNg", rank_by = "IFNg_dff", baseline_column = "naive"){
+  
+  #Find msot associatied peak for each SNP
+  matched_atac_peaks = findMostAssociatedPeakPerSNP(rna_qtls_df, atac_rasqual_list[[appear_condition]]) %>% dplyr::filter(p_fdr < 0.1)
+  
+  #Extract betas for ATAC peaks
+  atac_betas = extractAndProcessBetas(dplyr::select(matched_atac_peaks, gene_id, snp_id), atac_rasqual_list, baseline_column)
+  
+  #Merge ATAC and RNA betas into a single data frame
+  joint_betas =  mergeATACandRNAEffects(atac_betas$beta_df, rna_qtls_df, rna_betas$beta_df) %>%
+    dplyr::left_join(gene_name_map, by = "gene_id")
+  
+  #Rank genes based on difference in ATAC effect size
+  atac_ranked_summaries = rankAtacSummaries(atac_betas$beta_summaries, joint_betas, rank_by)
+  joint_betas = dplyr::mutate(joint_betas, gene_name = factor(gene_name, levels = atac_ranked_summaries$gene_name))
+  
+  return(joint_betas)
+}
+
+
