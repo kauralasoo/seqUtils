@@ -31,12 +31,14 @@ importGwasCatalog <- function(path){
     dplyr::select(pubmed_id, sample_size, is_european)
   
   #Extract snps form catalog
-  gwas_columns = gwas_catalog[,c("PUBMEDID","CHR_ID","CHR_POS","SNPS","DISEASE/TRAIT","MAPPED_TRAIT")]
-  colnames(gwas_columns) = c("pubmed_id", "chr", "pos", "snp_id", "trait", "mapped_trait")
+  gwas_columns = gwas_catalog[,c("PUBMEDID","CHR_ID","CHR_POS","SNPS","DISEASE/TRAIT","MAPPED_TRAIT","P-VALUE")]
+  colnames(gwas_columns) = c("pubmed_id", "chr", "pos", "snp_id", "trait", "mapped_trait","gwas_pvalue")
   
   #Join study data with SNPS and remove NAs
   gwas_table = dplyr::left_join(studies_df, gwas_columns, by = "pubmed_id") %>%
-    dplyr::filter(!is.na(chr), !is.na(pos))
+    dplyr::filter(!is.na(chr), !is.na(pos)) %>%
+    dplyr::mutate(chr = as.character(chr)) %>%
+    dplyr::mutate(chr = ifelse(chr == "23","X",chr))
   
   return(gwas_table)
 }
