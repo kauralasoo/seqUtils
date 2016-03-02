@@ -91,6 +91,17 @@ findMostAssociatedPeakPerSNP <- function(qtl_hits, rasqual_results){
   return(results)
 }
 
+findAllAssociatedPeaksPerSNP <- function(qtl_hits, rasqual_results){
+  results = dplyr::semi_join(rasqual_results, qtl_hits, by = "snp_id") %>%
+    dplyr::group_by(snp_id) %>% dplyr::arrange(desc(chisq)) %>%
+    dplyr::mutate(n_tests = length(gene_id)) %>%
+    dplyr::select(gene_id, snp_id, p_nominal, beta, n_tests) %>%
+    dplyr::group_by(gene_id, snp_id) %>%
+    dplyr::mutate(p_bonferroni = p.adjust(p_nominal, "bonferroni", n_tests)) %>%
+    dplyr::ungroup()
+  return(results)
+}
+
 mergeATACandRNAEffects <- function(atac_beta_df, rna_qtls, rna_beta_df){
   #Rename gene_id to peak_id
   atac_beta_df_renamed = dplyr::rename(atac_beta_df, peak_id = gene_id) %>% dplyr::mutate(phenotype = "ATAC")
