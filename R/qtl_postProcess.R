@@ -130,13 +130,13 @@ filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
   
   #Count SNPs per gene
   snp_count = dplyr::group_by(feature_snp_pairs, gene_id) %>% dplyr::summarise(snp_count = length(snp_id))
-  single_snps = dplyr::semi_join(joint_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
-  multi_snps = dplyr::anti_join(joint_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
+  single_snps = dplyr::semi_join(feature_snp_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
+  multi_snps = dplyr::anti_join(feature_snp_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
   
   #Filter genes with multiple genes
   multi_snp_list = plyr::dlply(multi_snps, "gene_id")
   multi_snp_filtered_list = lapply(multi_snp_list, filterGeneR2, genotypes, R2_thresh)
-  multi_snp_filtered = ldply(multi_snp_filtered_list, .id = NULL)
+  multi_snp_filtered = plyr::ldply(multi_snp_filtered_list, .id = NULL)
   result = rbind(single_snps, multi_snp_filtered)
   return(result)
 }
@@ -144,9 +144,10 @@ filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
 #Helper function for filterHitsR2
 filterGeneR2 <- function(gene_df, genotypes, r2_thresh){
   genotype_matrix = t(genotypes[gene_df$snp_id,])
-  r2 = cor(genotype_matrix, use = "pairwise.complete.obs")[1,]^2
-  r2[1] = 0 #Makes it easy to filter by R2 threshold
-  return(gene_df[r2 < r2_thresh,])
+  r2 = cor(genotype_matrix, use = "pairwise.complete.obs")^2
+  r2 = r2 - diag(1, nrow(r2))
+  r2[lower.tri(r2)] = 0
+  gene_df[colSums(r2 > r2_thresh) == 0,]
 }
 
 testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combined_expression_data, covariate_names, vcf_file, fdr_thresh = 0.1){
