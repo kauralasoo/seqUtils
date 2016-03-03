@@ -31,14 +31,18 @@ importGwasCatalog <- function(path){
     dplyr::select(pubmed_id, sample_size, is_european)
   
   #Extract snps form catalog
-  gwas_columns = gwas_catalog[,c("PUBMEDID","CHR_ID","CHR_POS","SNPS","DISEASE/TRAIT","MAPPED_TRAIT","P-VALUE")]
-  colnames(gwas_columns) = c("pubmed_id", "chr", "pos", "snp_id", "trait", "mapped_trait","gwas_pvalue")
+  gwas_columns = gwas_catalog[,c("PUBMEDID","CHR_ID","CHR_POS","SNPS","DISEASE/TRAIT","MAPPED_TRAIT","P-VALUE","OR or BETA", "STRONGEST SNP-RISK ALLELE")]
+  colnames(gwas_columns) = c("pubmed_id", "chr", "pos", "snp_id", "trait", "mapped_trait","gwas_pvalue","gwas_effect","snp_allele")
   
   #Join study data with SNPS and remove NAs
   gwas_table = dplyr::left_join(studies_df, gwas_columns, by = "pubmed_id") %>%
     dplyr::filter(!is.na(chr), !is.na(pos)) %>%
     dplyr::mutate(chr = as.character(chr)) %>%
-    dplyr::mutate(chr = ifelse(chr == "23","X",chr))
+    dplyr::mutate(chr = ifelse(chr == "23","X",chr)) %>%
+    tidyr::separate(snp_allele, into = c("snp","risk_allele"), sep = "-", extra = "drop") %>%
+    dplyr::select(-snp) %>%
+    dplyr::mutate(risk_allele = toupper(risk_allele)) %>%
+    dplyr::mutate(risk_allele = ifelse(risk_allele %in% c("A","C","G","T"), risk_allele, NA)) #Keep only proper nucleotides
   
   return(gwas_table)
 }
