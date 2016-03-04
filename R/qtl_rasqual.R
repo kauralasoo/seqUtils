@@ -465,7 +465,19 @@ postprocessRasqualResults <- function(rasqual_df){
 #' @return GRanges object with cooridnates of cis regions around genes.
 #' @export
 constructGeneRanges <- function(selected_genes, gene_metadata, cis_window){
+  
+  #Check that gene_metadata has required columns
+  assertthat::assert_that(assertthat::has_name(gene_metadata, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(gene_metadata, "chr"))
+  assertthat::assert_that(assertthat::has_name(gene_metadata, "start"))
+  assertthat::assert_that(assertthat::has_name(gene_metadata, "end"))
+  
+  #Assert other parameters
+  assertthat::assert_that(assertthat::has_name(gene_metadata, "gene_id"))
+  assertthat::assert_that(assertthat::is.number(cis_window))
+  
   filtered_metadata = dplyr::semi_join(gene_metadata, selected_genes, by = "gene_id")
+  print(filtered_metadata)
   granges = dplyr::mutate(filtered_metadata, range_start = pmax(0, start - cis_window), range_end = end + cis_window) %>%
     dplyr::select(gene_id, chr, range_start, range_end) %>%
     dplyr::transmute(gene_id, seqnames = chr, start = range_start, end = range_end, strand = "*") %>% 
