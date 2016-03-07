@@ -42,7 +42,7 @@ addAssociationPosterior <- function(dataset, n){
   coloc_res = testColoc(dataset, dataset, n, n)
   post_df = dplyr::transmute(coloc_res$results, snp_id = snp, lABF = lABF.df1) %>% 
     dplyr::mutate(posterior = exp(lABF)/sum(exp(lABF))) %>% 
-    dplyr::select(snp_id, posterior) %>%
+    dplyr::select(snp_id, lABF, posterior) %>%
     dplyr::mutate(snp_id = as.character(snp_id))
   result = dplyr::left_join(dataset, post_df, by = "snp_id")
   return(result)
