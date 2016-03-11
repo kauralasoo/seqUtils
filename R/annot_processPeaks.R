@@ -27,3 +27,12 @@ filterOverlaps <- function(peak_list, minOverlapCount = 3){
   }
   return(result)
 }
+
+#' Construct the union of list of peak calls and add gene_id and type metadata columns for read counting.
+makeUnionPeaks <- function(peak_list, seqlevels, id_prefix){
+  peaks = lapply(peak_list, function(x) keepSeqlevels(x, seqlevels))
+  union_peaks = listUnion(peaks)
+  metadata = dplyr::data_frame(type = "exon", gene_id = paste(id_prefix, c(1:length(union_peaks)), sep = ""))
+  elementMetadata(union_peaks) = metadata
+  return(union_peaks)
+}

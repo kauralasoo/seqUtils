@@ -120,3 +120,34 @@ importGwasPvalue <- function(path, gwas_catalog){
   
   return(gwas_pvalues)
 }
+
+findGWASOverlaps <- function(gene_snp_pairs, gwas_catalog, vcf_file, max_distance = 1e6, min_r2 = 0.6){
+  
+  #Extraxt GWAS SNPs from the catalog
+  gwas_snps = dplyr::transmute(gwas_catalog, gwas_snp_id = snp_id, chr, gwas_snp_pos = pos) %>% unique()
+  
+  #Add SNP positions to the gene_snp_pairs
+  selected_snp_positions = dplyr::filter(vcf_file$snpspos, snpid %in% gene_snp_pairs$snp_id) %>%
+    dplyr::rename(snp_id = snpid)
+  qtl_table = dplyr::left_join(gene_snp_pairs, selected_snp_positions, by = "snp_id")
+  
+  #Match GWAS SNPs and eQTL SNPs, filter by distance
+  matched_gwas_hits = dplyr::left_join(qtl_table, gwas_snps, by = "chr") %>% 
+    dplyr::mutate(distance = abs(gwas_snp_pos - pos)) %>% 
+    dplyr::filter(distance < max_distance)
+  
+  #Calculate R2 between all pairs of SNPs
+  unique_snps = unique(c(matched_gwas_hits$snp_id, matched_gwas_hits$gwas_snp_id))
+  selected_genotypes = vcf_file$genotypes[unique_snps,]
+  r2_matrix = cor(t(selected_genotypes), use = "pairwise.complete.obs")^2
+  
+  #Add R2 to the pairs
+  matched_gwas_r2 = dplyr::group_by(matched_gwas_hits, gene_id, snp_id, gwas_snp_id) %>% 
+    dplyr::mutate(R2 = matrixExtractPairs(snp_id, gwas_snp_id, r2_matrix)) %>%
+    dplyr::filter(R2 > min_r2) %>%
+    dplyr::ungroup() %>%
+    dplyr::left_join(filtered_catalog, by = c("gwas_snp_id" = "snp_id")) %>%
+    dplyr::select(-chr.y, -pos.y)
+  
+  return(matched_gwas_r2)
+}

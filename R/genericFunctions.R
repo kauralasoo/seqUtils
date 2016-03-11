@@ -56,3 +56,8 @@ splitIntoBatches <- function(n, batch_size){
   batch_ids = rep(seq(1:n_batches), each = batch_size)[1:n]
   return(batch_ids)
 }
+
+matrixExtractPairs <- function(row_name, col_name, matrix){
+  return(matrix[row_name, col_name])
+}
+
