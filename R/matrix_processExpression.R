@@ -115,3 +115,11 @@ tidyDESeq <- function(result, gene_metadata){
     dplyr::select(gene_id, gene_name, everything())
   return(result_table)
 }
+
+tidyTopTable <- function(result){
+  names = rownames(result)
+  result = result %>% dplyr::tbl_df() %>%
+    dplyr::mutate(gene_id = names) %>%
+    dplyr::select(gene_id, everything())
+  return(result)
+}
