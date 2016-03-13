@@ -139,10 +139,10 @@ prepareBetasDf <- function(rna_qtls_df, rna_betas, atac_rasqual_list,
   #Merge ATAC and RNA betas into a single data frame
   joint_betas =  mergeATACandRNAEffects(atac_betas$beta_df, rna_qtls_df, rna_betas$beta_df) %>%
     dplyr::left_join(gene_name_map, by = "gene_id")
-  
+
   #Rank genes based on difference in ATAC effect size
   atac_ranked_summaries = rankAtacSummaries(atac_betas$beta_summaries, joint_betas, rank_by)
-  joint_betas = dplyr::mutate(joint_betas, gene_name = factor(gene_name, levels = atac_ranked_summaries$gene_name))
+  joint_betas = dplyr::mutate(joint_betas, gene_name = factor(gene_name, levels = unique(atac_ranked_summaries$gene_name)))
   
   return(joint_betas)
 }
