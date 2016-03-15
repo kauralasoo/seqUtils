@@ -244,7 +244,15 @@ loadFragmentLengths <- function(sample_dir, sample_names, file_suffix = ".fragme
   return(result)
 }
 
-
+#' A general function to quickly import tabix indexed tab-separated files into data_frame
+#'
+#' @param tabix_file Path to tabix-indexed text file
+#' @param param A instance of GRanges, RangedData, or RangesList 
+#' provide the sequence names and regions to be parsed. Passed onto Rsamtools::scanTabix()
+#' @param ... Additional parameters to be passed on to readr::read_delim()
+#'
+#' @return List of data_frames, one for each entry in the param GRanges object.
+#' @export
 scanTabixDataFrame <- function(tabix_file, param, ...){
   tabix_list = Rsamtools::scanTabix(tabix_file, param = param)
   df_list = lapply(tabix_list, function(x,...){
