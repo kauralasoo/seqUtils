@@ -146,14 +146,20 @@ loadMarkDuplicates <- function(sample_dir, sample_names, counts_suffix = ".MarkD
 #' @param sample_names Vector of sample names.
 #' @param peaks_suffix Suffix of the narrowPeak files.
 #' @return List of GRanges objects corresponding to peak calls from each sample.
+#' @param sub_dir If TRUE, count files are nested in subfolders named after sample names, otherwise counts files
+#' are directly in sample_dir.
 #' @author Kaur Alasoo
 #' @export 
-loadNarrowPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak"){
+loadNarrowPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak", sub_dir = TRUE){
   #Import narrowPeak files into a list
   result = list()
   extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric", peak = "integer")
   for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], peaks_suffix, sep = ""))
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], peaks_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], peaks_suffix, sep = ""))
+    }
     print(path)
     peaks = rtracklayer::import(path, format = "BED", extraCols = extraCols_narrowPeak)
     result[[sample_names[i]]] = peaks
@@ -169,15 +175,21 @@ loadNarrowPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.nar
 #' @param sample_dir Path to the directory containing the broadPeak files.
 #' @param sample_names Vector of sample names.
 #' @param peaks_suffix Suffix of the broadPeak files.
+#' @param sub_dir If TRUE, count files are nested in subfolders named after sample names, otherwise counts files
+#' are directly in sample_dir.
 #' @return List of GRanges objects corresponding to peak calls from each sample.
 #' @author Kaur Alasoo
 #' @export 
-loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak"){
+loadBroadPeaks <- function(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak", sub_dir = TRUE){
   #Import broakPeak files into a list
   result = list()
   extraCols_broadPeak <- c(signalValue = "numeric", pValue = "numeric", qValue = "numeric")
   for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], peaks_suffix, sep = ""))
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], peaks_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], peaks_suffix, sep = ""))
+    }
     print(path)
     peaks = rtracklayer::import(path, format = "BED", extraCols = extraCols_broadPeak)
     result[[sample_names[i]]] = peaks
