@@ -4,7 +4,8 @@
 \alias{loadBroadPeaks}
 \title{Import broadPeak files into a list of GRanges objects.}
 \usage{
-loadBroadPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak")
+loadBroadPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak",
+  sub_dir = TRUE)
 }
 \arguments{
 \item{sample_dir}{Path to the directory containing the broadPeak files.}
@@ -12,6 +13,9 @@ loadBroadPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak")
 \item{sample_names}{Vector of sample names.}
 
 \item{peaks_suffix}{Suffix of the broadPeak files.}
+
+\item{sub_dir}{If TRUE, count files are nested in subfolders named after sample names, otherwise counts files
+are directly in sample_dir.}
 }
 \value{
 List of GRanges objects corresponding to peak calls from each sample.

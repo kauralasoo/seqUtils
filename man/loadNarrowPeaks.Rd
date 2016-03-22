@@ -4,7 +4,8 @@
 \alias{loadNarrowPeaks}
 \title{Import narrowPeak files into a list of GRanges objects.}
 \usage{
-loadNarrowPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak")
+loadNarrowPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak",
+  sub_dir = TRUE)
 }
 \arguments{
 \item{sample_dir}{Path to the directory containing the narroPeak files.}
@@ -12,6 +13,9 @@ loadNarrowPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak")
 \item{sample_names}{Vector of sample names.}
 
 \item{peaks_suffix}{Suffix of the narrowPeak files.}
+
+\item{sub_dir}{If TRUE, count files are nested in subfolders named after sample names, otherwise counts files
+are directly in sample_dir.}
 }
 \value{
 List of GRanges objects corresponding to peak calls from each sample.
