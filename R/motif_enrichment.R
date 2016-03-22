@@ -28,7 +28,7 @@ asPWMatrixList <- function(pwm_list){
   return(result)
 }
 
-cisBPImportRecords <- function(motifs_df, cisbp_dir){
+cisBPImportRecords <- function(motifs_df, cisbp_dir, toPWM = TRUE){
   
   #Convert motifs df to list
   motif_list = plyr::dlply(motifs_df, .(Motif_ID))
@@ -37,7 +37,11 @@ cisBPImportRecords <- function(motifs_df, cisbp_dir){
   pwm_list = lapply(motif_list, function(motif_record, cisbp_dir) {
     pfm = cisBPMotifToPFMatrix(motif_record, cisbp_dir)
     if (!is.null(pfm)){
-      pwm = TFBSTools::toPWM(pfm)
+      if(toPWM == TRUE){
+        pwm = TFBSTools::toPWM(pfm)
+      } else{
+        pwm = pfm
+      }
     } else{
       pwm = NULL
     }
@@ -51,4 +55,12 @@ cisBPImportRecords <- function(motifs_df, cisbp_dir){
   #Convert to PWMatrixtList object
   pwmatrix_list = asPWMatrixList(pwm_list)
   return(pwmatrix_list)
+}
+
+subsetDNAStringSet <- function(dna_string_set, batch_number, n_batches){
+  n_sequences = length(dna_string_set)
+  batch_size = ceiling(n_sequences/n_batches)
+  batches = splitIntoBatches(n_sequences, batch_size)
+  subset = dna_string_set[batches == batch_number]
+  return(subset)
 }
