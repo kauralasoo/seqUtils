@@ -98,3 +98,13 @@ exportDataForFastQTL <- function(condition_list, fastqtl_input_folder, n_chunks 
   write.table(chunks_matrix, file.path(fastqtl_input_folder, "chunk_table.txt"), 
               row.names = FALSE, quote = FALSE, col.names = FALSE, sep = " ")
 }
+
+fastQTLCorrectEigenMT <- function(fastqtl_results, n_tests){
+  res = dplyr::left_join(fastqtl_results, n_tests, by = "gene_id") %>% 
+    dplyr::mutate(n_tests = ifelse(is.na(n_tests), n_cis_snps, n_tests)) %>% 
+    dplyr::group_by(gene_id) %>% 
+    dplyr::mutate(p_eigen = p.adjust(p_nominal, "bonferroni", n = n_tests)) %>%
+    dplyr::ungroup() %>% 
+    dplyr::mutate(p_eigen_fdr = p.adjust(p_eigen, method = "fdr"))
+  return(res)
+}
