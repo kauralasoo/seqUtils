@@ -177,15 +177,13 @@ testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combin
 #'
 #' @return Either a pvalue (if return_value == "ponly") or the full linear model object.
 #' @export
-testInteraction <- function(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
-  #Test for interaction
-  sample_meta = eqtl_data_list$sample_metadata
-  
+testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
+
   #Extract data
-  exp_data = data_frame(sample_id = colnames(eqtl_data_list$cqn), expression = eqtl_data_list$cqn[gene_id,])
+  exp_data = data_frame(sample_id = colnames(trait_matrix), expression = trait_matrix[gene_id,])
   geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
   
-  sample_data = dplyr::left_join(sample_meta, exp_data, by = "sample_id") %>%
+  sample_data = dplyr::left_join(sample_metadata, exp_data, by = "sample_id") %>%
     dplyr::left_join(geno_data, by = "genotype_id")
   
   #apply two models to the data and compare them using anova
@@ -203,14 +201,14 @@ testInteraction <- function(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formu
 }
 
 #Run testInteraction on a data.frame of gene-SNP pairs
-testMultipleInteractions <- function(snps_df, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
+testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
   for(i in 1:nrow(snps_df)){
     gene_id = snps_df[i,]$gene_id
     snp_id = snps_df[i,]$snp_id
     print(gene_id)
-    test = testInteraction(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formula, interaction_formula, return_value)
+    test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
     result[[paste(gene_id,snp_id, sep = ":")]] = test
   }
   return(result)
