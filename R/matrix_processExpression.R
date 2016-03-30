@@ -42,13 +42,15 @@ zScoreNormalize <- function(matrix){
   return(matrix)
 }
 
-performPCA <- function(matrix, design, n_pcs = NULL, ...){
+performPCA <- function(matrix, design, n_pcs = NULL, column_prefix = "", ...){
   #Perform PCA of gene expression matrix add experimental design metadata to the results
   pca = prcomp(t(matrix), ...)
   if(is.null(n_pcs)){
     n_pcs = ncol(matrix)
   }
-  pca_matrix = as.data.frame(pca$x[,1:n_pcs]) %>% 
+  pca_mat = as.data.frame(pca$x[,1:n_pcs])
+  colnames(pca_mat) = paste0(column_prefix, colnames(pca_mat))
+  pca_matrix = pca_mat %>% 
     dplyr::mutate(sample_id = rownames(pca$x)) %>%
     dplyr::left_join(design, by = "sample_id")
   #Calculate variance explained by each component
