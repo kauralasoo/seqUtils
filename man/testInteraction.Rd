@@ -4,15 +4,17 @@
 \alias{testInteraction}
 \title{Test for interaction between genotype and condition using ANOVA model}
 \usage{
-testInteraction(gene_id, snp_id, eqtl_data_list, vcf_file, qtl_formula,
-  interaction_formula, return_value = "ponly")
+testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file,
+  qtl_formula, interaction_formula, return_value = "ponly")
 }
 \arguments{
 \item{gene_id}{Tested gene id}
 
 \item{snp_id}{Tested SNP id}
 
-\item{eqtl_data_list}{Exression dataset}
+\item{trait_matrix}{expression or chromatin accessibility matrix}
+
+\item{sample_metadata}{data frame with sample metadata and covariates}
 
 \item{vcf_file}{VCF file from gdsToMatrix() function}
 

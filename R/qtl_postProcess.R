@@ -170,7 +170,8 @@ testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combin
 #'
 #' @param gene_id Tested gene id
 #' @param snp_id Tested SNP id
-#' @param eqtl_data_list Exression dataset
+#' @param trait_matrix expression or chromatin accessibility matrix
+#' @param sample_metadata data frame with sample metadata and covariates
 #' @param vcf_file VCF file from gdsToMatrix() function
 #' @param qtl_formula Formula for the model with just genotype and condition terms
 #' @param interaction_formula Formula for the model with interaction term betweeb genotype and condition
@@ -178,7 +179,12 @@ testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combin
 #' @return Either a pvalue (if return_value == "ponly") or the full linear model object.
 #' @export
 testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
-
+  
+  #Some basic assertions
+  assertthat::assert_that(is.matrix(trait_matrix))
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "sample_id"))
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "genotype_id"))
+  
   #Extract data
   exp_data = data_frame(sample_id = colnames(trait_matrix), expression = trait_matrix[gene_id,])
   geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
@@ -220,7 +226,8 @@ postProcessInteractionPvalues <- function(pvalue_list){
     tidyr::separate(id, into = c("gene_id", "snp_id"), sep = ":") %>%
     dplyr::rename(p_nominal = V2) %>% tbl_df() %>%
     dplyr::select(gene_id, snp_id, p_nominal) %>%
-    dplyr::mutate(p_fdr = qvalue::qvalue(p_nominal)$qvalues) %>%
+    dplyr::mutate(p_fdr = p.adjust(p_nominal,"fdr")) %>%
+    dplyr::mutate(qvalue = qvalue::qvalue(p_nominal)$qvalues) %>%
     dplyr::arrange(p_nominal)
   return(res)
 }
