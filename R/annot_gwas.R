@@ -151,3 +151,23 @@ findGWASOverlaps <- function(gene_snp_pairs, gwas_catalog, vcf_file, max_distanc
   
   return(matched_gwas_r2)
 }
+
+rankTraitsByOverlapSize <- function(gwas_hits, filtered_catalog, min_overlap = 3){
+  
+  #Count the number of SNPs per trait
+  all_trait_sizes = dplyr::select(filtered_catalog, snp_id, trait) %>% 
+    dplyr::group_by(trait)  %>% dplyr::summarise(trait_size = length(trait))
+  
+  #Count the number of overlaps per trait
+  trait_counts_overlap = dplyr::group_by(gwas_hits, trait) %>%
+    dplyr::select(gwas_snp_id, trait) %>% unique() %>% 
+    dplyr::summarise(overlap_size = length(trait)) %>% 
+    dplyr::arrange(-overlap_size)
+  
+  #Calculate relative overlap
+  relative_overlap = dplyr::left_join(trait_counts_overlap, all_trait_sizes, by = "trait") %>% 
+    dplyr::mutate(fraction = overlap_size/trait_size) %>% dplyr::filter(overlap_size >= min_overlap) %>% 
+    arrange(-fraction)
+}
+
+
