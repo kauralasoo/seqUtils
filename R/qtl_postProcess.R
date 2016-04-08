@@ -150,6 +150,14 @@ filterGeneR2 <- function(gene_df, genotypes, r2_thresh){
   gene_df[colSums(r2 > r2_thresh) == 0,]
 }
 
+addR2FromLead <- function(gene_df, genotypes){
+  genotype_matrix = t(genotypes[gene_df$snp_id,])
+  r2 = apply(genotype_matrix, 2, function(x, y){ cor(x,y,use = "pairwise.complete.obs") }, genotype_matrix[,1])^2
+  gene_df = dplyr::mutate(gene_df, R2 = r2)
+  return(gene_df)
+}
+
+
 testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combined_expression_data, covariate_names, vcf_file, fdr_thresh = 0.1){
   #Extraxt gene name map
   gene_name_map = dplyr::select(combined_expression_data$gene_metadata, gene_id, gene_name)
