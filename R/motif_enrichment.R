@@ -79,11 +79,11 @@ fimoRelativeEnrichment <- function(foreground, background = NULL, fimo_hits, pea
   #Some assertions
   assertthat::assert_that(nrow(foreground) > 0)
   assertthat::assert_that(assertthat::has_name(foreground, "gene_id"))
-  assertthat::has_name(peak_metadata, "gene_id")
-  assertthat::has_name(peak_metadata, "start")
-  assertthat::has_name(peak_metadata, "end")
-  assertthat::has_name(fimo_hits, "gene_id")
-  assertthat::has_name(fimo_hits, "motif_id")
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "start"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "end"))
+  assertthat::assert_that(assertthat::has_name(fimo_hits, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(fimo_hits, "motif_id"))
   
   #Calculate peak widths
   width_matrix = dplyr::mutate(peak_metadata, width = end - start)
@@ -121,4 +121,58 @@ fimoRelativeEnrichment <- function(foreground, background = NULL, fimo_hits, pea
     dplyr::ungroup()
   
   return(enrichments)
+}
+
+#' Estimate how much PWM binding score is altered by the SNP
+#'
+#' @param pwm Position weight matrix in TFBSTools format
+#' @param peak_id ID of the ATAC peak
+#' @param snp_id ID of the variant
+#' @param peak_metadata Peak metadata (required columns: gene_id, start)
+#' @param peak_sequences DNAStringSet object containing the peak sequences.
+#' @param snp_metadata SNP metadata (required columns: snp_id, chr, pos, ref, alt)
+#' @param window_size Window size around the SNP
+#'
+#' @return Data frame of binding socres for the reference and alternate versions of the sequence.
+#' @export
+quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_sequences, snp_metadata, window_size = 25){
+  
+  #Some assertions
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "start"))
+  assertthat::assert_that(assertthat::has_name(snp_metadata, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(snp_metadata, "chr"))
+  assertthat::assert_that(assertthat::has_name(snp_metadata, "pos"))
+  assertthat::assert_that(assertthat::has_name(snp_metadata, "ref"))
+  assertthat::assert_that(assertthat::has_name(snp_metadata, "alt"))
+  assertthat::assert_that(class(sequences) == "DNAStringSet")
+  
+  #Extract data
+  snp = snp_id
+  ref_seq = sequences[[peak_id]]
+  peak_info = dplyr::filter(peak_metadata, gene_id == peak_id)
+  snp_info = dplyr::filter(snp_metadata, snp_id == snp)
+  
+  #Construct alternate sequence
+  variant_pos = snp_info$pos - peak_info$start + 1
+  alt_seq = ref_seq
+  alt_seq[variant_pos] = snp_info$alt
+  
+  #Keep only sequence around the SNP
+  region_start = max(variant_pos - window_size, 0)
+  region_end = min(variant_pos + window_size, length(ref_seq))
+  ref_region = ref_seq[region_start:region_end]
+  alt_region = alt_seq[region_start:region_end]
+  
+  #Search for motif matches
+  ref_matches = TFBSTools::searchSeq(pwm, ref_region, min.score="0%", strand="*") %>% TFBSTools::as.data.frame()
+  alt_matches = TFBSTools::searchSeq(pwm, alt_region, min.score="0%", strand="*") %>% TFBSTools::as.data.frame()
+  
+  #Join both of the matches together
+  ref_scores = dplyr::transmute(ref_matches, start, strand, motif_id = ID, ref_abs_score = absScore, ref_rel_score = relScore, ref_match = siteSeqs)
+  alt_scores = dplyr::transmute(alt_matches, start, strand, alt_abs_score = absScore, alt_rel_score = relScore, alt_match = siteSeqs)
+  combined_scores = dplyr::left_join(ref_scores, alt_scores , by = c("start","strand")) %>% 
+    dplyr::mutate(rel_diff = alt_rel_score - ref_rel_score, max_rel_score = pmax(ref_rel_score, alt_rel_score))
+  
+  return(combined_scores)
 }
