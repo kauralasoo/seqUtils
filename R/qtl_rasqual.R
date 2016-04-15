@@ -71,16 +71,6 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
   gc_library_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata)
   saveRasqualMatrices(gc_library_size_list, rasqual_input_folder, file_suffix = "gc_library_size")
   
-  #Export RLE size
-  rle_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata, method = "RLE", gc_correct = FALSE)
-  saveRasqualMatrices(rle_size_list, rasqual_input_folder, file_suffix = "RLE_size")
-  
-  #Export GC-corrected RLE sizes
-  gc_rle_size_list = lapply(counts_list, rasqualCalculateSampleOffsets, condition_list[[1]]$gene_metadata, method = "RLE")
-  saveRasqualMatrices(gc_rle_size_list, rasqual_input_folder, file_suffix = "gc_RLE_size")
-  
-  #Export offsets from the cqn pacakge
-  
   #Calculate covariates using Natsuhiko's SVD code
   covariates_list = lapply(condition_list, function(x){
     sf = rasqualCalculateSampleOffsets(x$counts, x$gene_metadata)
