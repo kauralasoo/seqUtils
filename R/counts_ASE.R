@@ -86,9 +86,10 @@ tidyGenotypeMatrix <- function(genotypes, selected_snp_id = "snp_id", value_id =
   rows = rownames(genotypes)
   result = tbl_df(as.data.frame(genotypes)) %>% 
     dplyr::mutate(snp_id = rows) %>% 
-    tidyr::gather_("genotype_id", value_id, 1:ncol(genotypes)) %>%
+    tidyr::gather(genotype_id, value_id, 1:ncol(genotypes))  %>%
     dplyr::mutate(genotype_id = as.character(genotype_id)) %>%
-    dplyr::rename_(.dots = setNames("snp_id", selected_snp_id))
+    dplyr::rename_(.dots = setNames("snp_id", selected_snp_id)) %>%
+    dplyr::rename_(.dots = setNames("value_id", value_id))
   return(result)
 }
 
@@ -102,8 +103,9 @@ tidyGenotypeMatrix <- function(genotypes, selected_snp_id = "snp_id", value_id =
 aseDataAddGenotypes <- function(ase_data, genotypes){
   assertthat::assert_that(nrow(ase_data) > 0)
   
-  ase_data_gt = dplyr::left_join(ase_data, tidyGenotypeMatrix(genotypes[unique(ase_data$feature_snp_id),,drop = FALSE], 
-        value_id = "feature_snp_value", selected_snp_id = "feature_snp_id"), by = c("feature_snp_id", "genotype_id")) %>%
+  gt_matrix = genotypes[unique(ase_data$feature_snp_id),,drop = FALSE]
+  tidy_gt_matrix = tidyGenotypeMatrix(gt_matrix, value_id = "feature_snp_value", selected_snp_id = "feature_snp_id")
+  ase_data_gt = dplyr::left_join(ase_data, tidy_gt_matrix, by = c("feature_snp_id", "genotype_id")) %>%
     dplyr::left_join(tidyGenotypeMatrix(genotypes[unique(ase_data$lead_snp_id),,drop = FALSE], 
         value_id = "lead_snp_value", selected_snp_id = "lead_snp_id"), by = c("lead_snp_id", "genotype_id"))
   return(ase_data_gt)

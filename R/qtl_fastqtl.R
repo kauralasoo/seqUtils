@@ -34,7 +34,7 @@ importFastQTLTable <- function(file_path){
     table = table %>% tbl_df() %>% 
       dplyr::filter(!is.na(p_beta)) %>%
       dplyr::mutate(p_fdr = p.adjust(p_beta, method = "fdr")) %>%
-      dplyr::mutate(qvalue = qvalue::qvalue(p_beta)$qvalue) %>%
+      dplyr::mutate(qvalue = qvalue::qvalue(p_beta)$qvalues) %>%
       dplyr::arrange(p_fdr)
   }
   return(table)
