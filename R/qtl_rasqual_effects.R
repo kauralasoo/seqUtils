@@ -128,9 +128,9 @@ rankAtacSummaries <- function(atac_beta_summaries, joint_effects, rank_by){
 }
 
 prepareBetasDf <- function(rna_qtls_df, rna_betas, atac_rasqual_list, 
-                           gene_name_map, appear_condition = "IFNg", rank_by = "IFNg_dff", baseline_column = "naive"){
+                           gene_name_map, appear_condition = "IFNg", rank_by = "IFNg_diff", baseline_column = "naive"){
   
-  #Find msot associatied peak for each SNP
+  #Find most associatied peak for each SNP
   matched_atac_peaks = findMostAssociatedPeakPerSNP(rna_qtls_df, atac_rasqual_list[[appear_condition]]) %>% dplyr::filter(p_fdr < 0.1)
   
   #Extract betas for ATAC peaks
