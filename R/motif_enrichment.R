@@ -176,3 +176,55 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   
   return(combined_scores)
 }
+
+fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_length){
+  
+  #Count the number of mathces in the background sequences
+  bg_matches = dplyr::group_by(fimo_promoter_hits, motif_id) %>% 
+    dplyr::summarise(n_bg_matches = length(seq_name)) %>% 
+    dplyr::mutate(bg_length = bg_seq_length) %>%
+    dplyr::ungroup()
+  
+  #Count the number of matches in the foreground sequences
+  fg_matches = dplyr::group_by(fimo_hits, motif_id) %>%
+    dplyr::summarise(n_fg_matches = length(motif_id)) %>%
+    dplyr::mutate(fg_length = fg_seq_length) %>%
+    dplyr::ungroup()
+  
+  #Put the two lists together
+  joint_matches = dplyr::left_join(bg_matches, fg_matches, by = "motif_id") %>%
+    dplyr::mutate(fold_enrichment = (n_fg_matches/fg_length)/(n_bg_matches/bg_length)) %>% 
+    dplyr::arrange(-fold_enrichment)
+  
+  #Peform Fisher's Exact test
+  enrichment = joint_matches %>% 
+    dplyr::group_by(motif_id) %>% 
+    dplyr::mutate(p_nominal = fisher.test( matrix(c(n_bg_matches, bg_length-n_bg_matches, n_fg_matches, fg_length-n_fg_matches), nrow = 2) )[["p.value"]] ) %>%
+    dplyr::ungroup()
+  
+  return(enrichment)
+}
+
+saveMotifListLogos <- function(motif_list, outdir){
+  motif_names = names(motif_list)
+  for(motif_name in motif_names){
+    motif = motif_list[[motif_name]]
+    outfile = file.path(outdir, paste0(motif_name, ".pdf"))
+    pdf(outfile)
+    seqLogo::seqLogo(motif)
+    dev.off()
+  }
+}
+
+PWMSimilarityMatrix <- function(pwm_list, method){
+  sim_matrix = matrix(0, length(pwm_list), length(pwm_list))
+  colnames(sim_matrix) = names(pwm_list)
+  rownames(sim_matrix) = names(pwm_list)
+  for (i in seq_along(pwm_list)){
+    for (j in seq_along(pwm_list)) {
+      sim_matrix[i,j] = TFBSTools::PWMSimilarity(pwm_list[i], pwm_list[j], method)
+    }
+  }
+  return(sim_matrix)
+}
+
