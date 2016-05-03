@@ -84,3 +84,62 @@ addOverlappingPeaks <- function(qtl_credible_set, atac_peak_metadata, extend = 0
   peak_finemapping = dplyr::left_join(qtl_credible_set, overlapping_peaks, by = "snp_id")
   return(peak_finemapping)
 }
+
+
+fetchCredibleSets <- function(qtl_df, gene_metadata, peak_metadata, rasqual_tabix_file, vcf_file, cis_window){
+  
+  #Construct GRanges object with the cis regions of the genes
+  qtl_granges = rasqualTools::constructGeneRanges(qtl_df, gene_metadata, cis_window)
+  
+  #Fetch credible sets for each gene
+  peak_list = idVectorToList(qtls$gene_id)
+  peak_cs = purrr::map(peak_list, ~rasqualTools::tabixFetchGenesQuick(.,rasqual_tabix_file, qtl_granges)[[1]] %>%
+                         dplyr::arrange(p_nominal) %>%
+                         addR2FromLead(vcf_file$genotypes) %>% 
+                         dplyr::filter(R2 > 0.8) %>% 
+                         addOverlappingPeaks(.,peak_metadata, extend = 50)
+  )
+  
+  #Convert credible sets into a data frame
+  peak_cs_df = purrr::map_df(peak_cs_olaps, ~dplyr::mutate(.,chr = as.character(chr))) %>%
+    dplyr::filter(chr != "X") #QTLs on X likely FPs
+  return(peak_cs_df)
+}
+
+#Calculate summary stats on the credible sets
+summariseCredibleSets <- function(credible_sets_df){
+  
+  #Calculate credible set size
+  credible_set_size = dplyr::group_by(credible_sets_df, gene_id) %>% 
+    dplyr::arrange(p_nominal) %>% 
+    dplyr::summarise(credible_set_size = length(snp_id))
+  
+  #Remove SNPs that do not overlap peaks
+  peaks_filtered = dplyr::filter(credible_sets_df, !is.na(overlap_peak_id))
+  
+  #Find peaks where at least one variant lies within the peak
+  overlap_snp_count = dplyr::filter(peaks_filtered, gene_id == overlap_peak_id) %>% 
+    dplyr::group_by(gene_id) %>%
+    dplyr::summarise(overlap_snp_count = length(snp_id)) %>%
+    dplyr::ungroup()
+  
+  #Count the number of peaks overlapping SNPs in the credible set
+  overlap_peak_count = peaks_filtered %>% 
+    dplyr::group_by(gene_id) %>% 
+    dplyr::summarise(overlap_peak_count = length(overlap_peak_id)) %>% 
+    ungroup()
+  
+  #Find lead SNPs
+  lead_snps = dplyr::group_by(peak_cs_df, gene_id) %>% dplyr::arrange(p_nominal) %>% 
+    dplyr::filter(row_number() == 1) %>% dplyr::ungroup() %>%
+    dplyr::left_join(credible_set_size, by = "gene_id") %>%
+    dplyr::left_join(overlap_snp_count, by = "gene_id") %>%
+    dplyr::mutate(overlap_snp_count = ifelse(is.na(overlap_snp_count), 0, overlap_snp_count)) %>%
+    dplyr::left_join(overlap_peak_count, by = "gene_id") %>%
+    dplyr::mutate(overlap_peak_count = ifelse(is.na(overlap_peak_count), 0, overlap_peak_count))
+  
+  return(lead_snps)
+}
+
+
+
