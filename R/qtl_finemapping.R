@@ -92,7 +92,7 @@ fetchCredibleSets <- function(qtl_df, gene_metadata, peak_metadata, rasqual_tabi
   qtl_granges = rasqualTools::constructGeneRanges(qtl_df, gene_metadata, cis_window)
   
   #Fetch credible sets for each gene
-  peak_list = idVectorToList(qtls$gene_id)
+  peak_list = idVectorToList(qtl_df$gene_id)
   peak_cs = purrr::map(peak_list, ~rasqualTools::tabixFetchGenesQuick(.,rasqual_tabix_file, qtl_granges)[[1]] %>%
                          dplyr::arrange(p_nominal) %>%
                          addR2FromLead(vcf_file$genotypes) %>% 
@@ -101,7 +101,7 @@ fetchCredibleSets <- function(qtl_df, gene_metadata, peak_metadata, rasqual_tabi
   )
   
   #Convert credible sets into a data frame
-  peak_cs_df = purrr::map_df(peak_cs_olaps, ~dplyr::mutate(.,chr = as.character(chr))) %>%
+  peak_cs_df = purrr::map_df(peak_cs, ~dplyr::mutate(.,chr = as.character(chr))) %>%
     dplyr::filter(chr != "X") #QTLs on X likely FPs
   return(peak_cs_df)
 }
