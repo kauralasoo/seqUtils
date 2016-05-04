@@ -151,9 +151,20 @@ filterGeneR2 <- function(gene_df, genotypes, r2_thresh){
 }
 
 addR2FromLead <- function(gene_df, genotypes){
+  
+  assertthat::assert_that(!is.null(gene_df))
+  assertthat::assert_that(assertthat::has_name(gene_df, "snp_id"))
+  
+  #Extract genotype matrix
   genotype_matrix = t(genotypes[gene_df$snp_id,])
-  r2 = apply(genotype_matrix, 2, function(x, y){ cor(x,y,use = "pairwise.complete.obs") }, genotype_matrix[,1])^2
-  gene_df = dplyr::mutate(gene_df, R2 = r2)
+  
+  #If more than one SNP then calculate R2
+  if( nrow(gene_df) > 1 ){ 
+    r2 = apply(genotype_matrix, 2, function(x, y){ cor(x,y,use = "pairwise.complete.obs") }, genotype_matrix[,1])^2
+    gene_df = dplyr::mutate(gene_df, R2 = r2)
+  } else { #If only one SNP then set R2 to 1
+    gene_df = dplyr::mutate(gene_df, R2 = 1)
+  }
   return(gene_df)
 }
 
