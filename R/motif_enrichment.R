@@ -156,6 +156,7 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   #Construct alternate sequence
   variant_pos = snp_info$pos - peak_info$start + 1
   alt_seq = ref_seq
+  #return(list(ref_seq = ref_seq, variant_pos = variant_pos, alt_value = snp_info$alt))
   alt_seq[variant_pos] = snp_info$alt
   
   #Keep only sequence around the SNP
@@ -185,7 +186,7 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
 #' @param rel_diff_thresh Difference in relative binding score must be greater than this (default = 0)
 quantifyMultipleMotifs <- function(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25, 
                                    max_score_thresh = 0.8, rel_diff_thresh = 0){
-  motif_disurptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, atac_data$gene_metadata, sequences, snp_info) %>%
+  motif_disruptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, atac_data$gene_metadata, sequences, snp_info) %>%
                                    dplyr::filter(max_rel_score >= max_score_thresh, rel_diff > rel_diff_thresh))
   result_df = purrr::map_df(motif_disruptions, ~dplyr::mutate(.,strand = as.character(strand), motif_id = as.character(motif_id)))
   return(result_df)
