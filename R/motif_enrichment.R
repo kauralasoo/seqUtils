@@ -177,6 +177,34 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   return(combined_scores)
 }
 
+#' Applies quantifyMotifDisruption to a list of motifs
+#' 
+#' Converts the output into a data frame and performs some basic filtering
+#'
+#' @param max_score_thresh Maximal relative score across variants must be greater than this (default = 0.8)
+#' @param rel_diff_thresh Difference in relative binding score must be greater than this (default = 0)
+quantifyMultipleMotifs <- function(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25, 
+                                   max_score_thresh = 0.8, rel_diff_thresh = 0){
+  motif_disurptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, atac_data$gene_metadata, sequences, snp_info) %>%
+                                   dplyr::filter(max_rel_score >= max_score_thresh, rel_diff > rel_diff_thresh))
+  result_df = purrr::map_df(motif_disruptions, ~dplyr::mutate(.,strand = as.character(strand), motif_id = as.character(motif_id)))
+  return(result_df)
+}
+
+#' Applies quantifyMultipleMotifs to a data frame of peak and snp ids
+#' 
+#' @param peak_snp_list data frame of peak and snp ids (required columns: gene_id, snp_id) 
+quantifyMultipleVariants <- function(peak_snp_list, motif_list, peak_metadata, peak_sequences, snp_metadata){
+  
+  motif_disruptions = purrr::by_row(peak_snp_list, function(x, ...){
+    print(x$gene_id)
+    quantifyMultipleMotifs(x$gene_id, x$snp_id, ...)
+  },motif_list, peak_metadata, peak_sequences, snp_metadata, .collate = "rows")
+  
+  return(motif_disruptions)
+}
+
+
 fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_length){
   
   #Count the number of mathces in the background sequences
