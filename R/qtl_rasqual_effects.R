@@ -9,6 +9,17 @@ extractBetasFromList <- function(gene_snp_pairs, rasqual_result_list){
   return(res)
 }
 
+extractPvaluesFromList <- function(gene_snp_pairs, rasqual_result_list){
+  betas_list = lapply(rasqual_result_list, function(x) dplyr::select(x, gene_id, snp_id, p_nominal))
+  res = gene_snp_pairs
+  for (i in seq_along(names(rasqual_result_list))){
+    res = dplyr::left_join(res, betas_list[[i]], by = c("gene_id", "snp_id"))
+  }
+  #Rename newly added columns with the names of the list
+  colnames(res)[(ncol(gene_snp_pairs)+1):ncol(res)] = names(rasqual_result_list)
+  return(res)
+}
+
 calculateBetaDiffMatrix <- function(beta_matrix, baseline_column = "naive"){
   beta_diff_matrix = dplyr::select(beta_matrix, -gene_id, -snp_id) %>% as.data.frame() #Remvoe gene id and SNP ids
   beta_diff_matrix = beta_diff_matrix - beta_diff_matrix[,baseline_column] #Calculate diff compared to baseline
