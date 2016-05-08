@@ -130,8 +130,18 @@ modifyDNAString <- function(dna_string, pos, ref_value, alt_value){
   alt = as(alt_value, "DNAString")
   
   #Extraxt upstream and downstream sequences from the dna_string
-  upstream = dna_string[1:pos-1]
-  downstream = dna_string[(pos + length(ref)):length(dna_string)]
+  if(pos <= 1){ #If variant is at first position
+    upstream = as("","DNAString")
+  } else{
+    upstream = dna_string[1:pos-1]
+  }
+  
+  #If variant is at last position
+  if(pos == length(dna_string)){
+    downstream = as("","DNAString")
+  } else{
+    downstream = dna_string[(pos + length(ref)):length(dna_string)]
+  }
   
   #Make alternate sequence
   alt_sequence = c(upstream, alt, downstream)
@@ -171,6 +181,10 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   
   #Construct alternate sequence
   variant_pos = snp_info$pos - peak_info$start + 1
+  print(ref_seq)
+  print(snp_info$ref)
+  print(snp_info$alt)
+  print(variant_pos)
   alt_seq = modifyDNAString(ref_seq, variant_pos, snp_info$ref, snp_info$alt)
   
   #Keep only sequence around the SNP
