@@ -196,7 +196,7 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
     #For indels positions get shifted, better to look if the max score of the motif changes because of the indel
     ref_max = ref_scores %>% dplyr::arrange(-ref_rel_score) %>% dplyr::filter(row_number() == 1)
     alt_max = alt_scores %>% dplyr::arrange(-alt_rel_score) %>% dplyr::filter(row_number() == 1) %>% 
-      dplyr::rename(alt_start = start, alt_strand = strand)
+      dplyr::select(-start, -strand)
     combined_scores = cbind(ref_max, alt_max) %>%
       dplyr::mutate(rel_diff = alt_rel_score - ref_rel_score, max_rel_score = pmax(ref_rel_score, alt_rel_score))
   }
@@ -211,7 +211,7 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
 #' @param max_score_thresh Maximal relative score across variants must be greater than this (default = 0.8)
 #' @param rel_diff_thresh Difference in relative binding score must be greater than this (default = 0)
 quantifyMultipleMotifs <- function(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25, 
-                                   max_score_thresh = 0.8, rel_diff_thresh = 0){
+                                   max_score_thresh = 0.7, rel_diff_thresh = 0){
   motif_disruptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, peak_metadata, peak_sequences, snp_metadata, window_size) %>%
                                    dplyr::filter(max_rel_score >= max_score_thresh, rel_diff > rel_diff_thresh))
   result_df = purrr::map_df(motif_disruptions, ~dplyr::mutate(.,strand = as.character(strand), motif_id = as.character(motif_id)))
