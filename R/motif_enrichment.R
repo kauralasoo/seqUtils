@@ -181,10 +181,6 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   
   #Construct alternate sequence
   variant_pos = snp_info$pos - peak_info$start + 1
-  print(ref_seq)
-  print(snp_info$ref)
-  print(snp_info$alt)
-  print(variant_pos)
   alt_seq = modifyDNAString(ref_seq, variant_pos, snp_info$ref, snp_info$alt)
   
   #Keep only sequence around the SNP
