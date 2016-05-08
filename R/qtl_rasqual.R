@@ -80,20 +80,11 @@ exportDataForRasqual <- function(condition_list, rasqual_input_folder, max_batch
   saveRasqualMatrices(covariates_list, rasqual_input_folder, file_suffix = "svd_covariates")
   
   #Extract covariates from sample metadata
-  meta_cov_list = lapply(condition_list, function(x){
-    meta_matrix = dplyr::select(x$sample_metadata, sample_id, sex_binary, PEER_factor_1:PEER_factor_10)
-    cov_matrix = rasqualMetadataToCovariates(meta_matrix)[,1:5]
-    return(cov_matrix)
-  })
-  saveRasqualMatrices(meta_cov_list, rasqual_input_folder, file_suffix = "PEER_covariates")
-  
-  #Extract covariates from sample metadata
-  meta_cov_list = lapply(condition_list, function(x){
-    meta_matrix = dplyr::select(x$sample_metadata, sample_id, sex_binary, PEER_factor_1:PEER_factor_10)
-    cov_matrix = rasqualMetadataToCovariates(meta_matrix)[,1:3]
-    return(cov_matrix)
-  })
-  saveRasqualMatrices(meta_cov_list, rasqual_input_folder, file_suffix = "PEER_covariates_n3")
+  covariate_names = c("genotype_id", "PEER_factor_1", "PEER_factor_2", "sex_binary")
+  rasqual_cov_list = lapply(condition_list, function(x, covariate_names){
+    rasqualMetadataToCovariates(x$sample_metadata[,covariate_names])
+  }, covariate_names)
+  saveRasqualMatrices(rasqual_cov_list, rasqual_input_folder, file_suffix = "covariates")
   
   #Save feature names to disk
   feature_names = rownames(counts_list[[1]])
