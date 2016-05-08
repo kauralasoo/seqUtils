@@ -123,6 +123,21 @@ fimoRelativeEnrichment <- function(foreground, background = NULL, fimo_hits, pea
   return(enrichments)
 }
 
+modifyDNAString <- function(dna_string, pos, ref_value, alt_value){
+  
+  #Convert ref and alt to DNAString
+  ref = as(ref_value, "DNAString")
+  alt = as(alt_value, "DNAString")
+  
+  #Extraxt upstream and downstream sequences from the dna_string
+  upstream = dna_string[1:pos-1]
+  downstream = dna_string[(pos + length(ref)):length(dna_string)]
+  
+  #Make alternate sequence
+  alt_sequence = c(upstream, alt, downstream)
+  return(alt_sequence)
+}
+
 #' Estimate how much PWM binding score is altered by the SNP
 #'
 #' @param pwm Position weight matrix in TFBSTools format
@@ -152,30 +167,70 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   ref_seq = sequences[[peak_id]]
   peak_info = dplyr::filter(peak_metadata, gene_id == peak_id)
   snp_info = dplyr::filter(snp_metadata, snp_id == snp)
+  length_diff = nchar(snp_info$alt) - nchar(snp_info$ref)
   
   #Construct alternate sequence
   variant_pos = snp_info$pos - peak_info$start + 1
-  alt_seq = ref_seq
-  alt_seq[variant_pos] = snp_info$alt
+  alt_seq = modifyDNAString(ref_seq, variant_pos, snp_info$ref, snp_info$alt)
   
   #Keep only sequence around the SNP
   region_start = max(variant_pos - window_size, 0)
-  region_end = min(variant_pos + window_size, length(ref_seq))
+  min_length = min(length(ref_seq), length(alt_seq))
+  region_end = min(variant_pos + window_size, min_length)
   ref_region = ref_seq[region_start:region_end]
-  alt_region = alt_seq[region_start:region_end]
+  alt_region = alt_seq[region_start:(region_end + length_diff)]
   
   #Search for motif matches
   ref_matches = TFBSTools::searchSeq(pwm, ref_region, min.score="0%", strand="*") %>% TFBSTools::as.data.frame()
   alt_matches = TFBSTools::searchSeq(pwm, alt_region, min.score="0%", strand="*") %>% TFBSTools::as.data.frame()
-  
-  #Join both of the matches together
+
+  #Rename columns
   ref_scores = dplyr::transmute(ref_matches, start, strand, motif_id = ID, ref_abs_score = absScore, ref_rel_score = relScore, ref_match = siteSeqs)
   alt_scores = dplyr::transmute(alt_matches, start, strand, alt_abs_score = absScore, alt_rel_score = relScore, alt_match = siteSeqs)
-  combined_scores = dplyr::left_join(ref_scores, alt_scores , by = c("start","strand")) %>% 
-    dplyr::mutate(rel_diff = alt_rel_score - ref_rel_score, max_rel_score = pmax(ref_rel_score, alt_rel_score))
   
+  #Join both of the matches together
+  if (length_diff == 0){ #For SNPs perform position by position comparison
+   combined_scores = dplyr::left_join(ref_scores, alt_scores , by = c("start","strand")) %>% 
+      dplyr::mutate(rel_diff = alt_rel_score - ref_rel_score, max_rel_score = pmax(ref_rel_score, alt_rel_score))
+  } else {
+    #For indels positions get shifted, better to look if the max score of the motif changes because of the indel
+    ref_max = ref_scores %>% dplyr::arrange(-ref_rel_score) %>% dplyr::filter(row_number() == 1)
+    alt_max = alt_scores %>% dplyr::arrange(-alt_rel_score) %>% dplyr::filter(row_number() == 1) %>% 
+      dplyr::select(-start, -strand)
+    combined_scores = cbind(ref_max, alt_max) %>%
+      dplyr::mutate(rel_diff = alt_rel_score - ref_rel_score, max_rel_score = pmax(ref_rel_score, alt_rel_score))
+  }
+
   return(combined_scores)
 }
+
+#' Applies quantifyMotifDisruption to a list of motifs
+#' 
+#' Converts the output into a data frame and performs some basic filtering
+#'
+#' @param max_score_thresh Maximal relative score across variants must be greater than this (default = 0.8)
+#' @param rel_diff_thresh Difference in relative binding score must be greater than this (default = 0)
+quantifyMultipleMotifs <- function(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25, 
+                                   max_score_thresh = 0.7, rel_diff_thresh = 0){
+  motif_disruptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, peak_metadata, peak_sequences, snp_metadata, window_size) %>%
+                                   dplyr::filter(max_rel_score >= max_score_thresh, rel_diff > rel_diff_thresh))
+  result_df = purrr::map_df(motif_disruptions, ~dplyr::mutate(.,strand = as.character(strand), motif_id = as.character(motif_id)))
+  return(result_df)
+}
+
+#' Applies quantifyMultipleMotifs to a data frame of peak and snp ids
+#' 
+#' @param peak_snp_list data frame of peak and snp ids (required columns: gene_id, snp_id) 
+quantifyMultipleVariants <- function(peak_snp_list, motif_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25){
+  
+  motif_disruptions = purrr::by_row(peak_snp_list, function(x, ...){
+    print(x$gene_id)
+    quantifyMultipleMotifs(x$gene_id, x$snp_id, ...)
+  },motif_list, peak_metadata, peak_sequences, snp_metadata, window_size, .collate = "rows")
+  
+  return(motif_disruptions)
+}
+
 
 fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_length){
   

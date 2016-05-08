@@ -7,9 +7,11 @@
 addOverlappingPeaks(qtl_credible_set, atac_peak_metadata, extend = 0)
 }
 \arguments{
-\item{qtl_credible_set}{Data frame with credible set of QTL variants (columns:)}
+\item{qtl_credible_set}{Data frame with credible set of QTL variants 
+(columns: snp_id, chr, pos)}
 
-\item{atac_peak_metadata}{Data frame of start end coordinates of ATAC peaks (columns)}
+\item{atac_peak_metadata}{Data frame of start end coordinates of ATAC peaks 
+(columns: gene_id, chr, start, end, strand)}
 
 \item{extend}{Number of bp added to peak start and end coordinates to increase the chance of finding an overlap.}
 }
