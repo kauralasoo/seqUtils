@@ -140,7 +140,14 @@ modifyDNAString <- function(dna_string, pos, ref_value, alt_value){
   if(pos == length(dna_string)){
     downstream = as("","DNAString")
   } else{
-    downstream = dna_string[(pos + length(ref)):length(dna_string)]
+    downstream_start_coord = pos + length(ref)
+    #Handle cases where indel is wider than the peak itself.
+    if(downstream_start_coord <= length(dna_string)){
+      downstream = dna_string[(pos + length(ref)):length(dna_string)]
+    } else{
+      warning("Reference indel length exceeds peak boundaries.")
+      downstream = as("","DNAString")
+    }
   }
   
   #Make alternate sequence
@@ -177,18 +184,22 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
   ref_seq = sequences[[peak_id]]
   peak_info = dplyr::filter(peak_metadata, gene_id == peak_id)
   snp_info = dplyr::filter(snp_metadata, snp_id == snp)
-  length_diff = nchar(snp_info$alt) - nchar(snp_info$ref)
   
   #Construct alternate sequence
   variant_pos = snp_info$pos - peak_info$start + 1
   alt_seq = modifyDNAString(ref_seq, variant_pos, snp_info$ref, snp_info$alt)
-  
+  length_diff = length(alt_seq) - length(ref_seq)
+
   #Keep only sequence around the SNP
   region_start = max(variant_pos - window_size, 0)
   min_length = min(length(ref_seq), length(alt_seq))
   region_end = min(variant_pos + window_size, min_length)
+  
+  #Construct regions around the variant
   ref_region = ref_seq[region_start:region_end]
-  alt_region = alt_seq[region_start:(region_end + length_diff)]
+  #Make sure that end of of the alternative sequence is not before the variant position (problem with long indels)
+  alt_end = max(variant_pos, (region_end + length_diff))
+  alt_region = alt_seq[region_start:alt_end]
   
   #Search for motif matches
   ref_matches = TFBSTools::searchSeq(pwm, ref_region, min.score="0%", strand="*") %>% TFBSTools::as.data.frame()
