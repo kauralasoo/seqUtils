@@ -158,3 +158,51 @@ postProcessInteractionPvalues <- function(pvalue_list){
   return(res)
 }
 
+#' Test for threeway interactions between two features, genotype and environment.
+#' 
+#' The two features (master and dependent) are assumed to be regulated by the same 
+#' causal genetic variant.
+#'
+#' @param feature_pairs data frame with master_id, dependent_id and snp_id
+#' @param trait_matrix expression or chromatin accessibility matrix
+#' @param sample_metadata data frame with sample metadata and covariates
+#' @param vcf_file VCF file from gdsToMatrix() function
+#' @param model0 Null model
+#' @param model1 Model of interest that is compared to the null model
+#' @param p_only Specifies return type
+#'
+#' @return If TRUE, then only p-value is returned, otherwise returns a list of model data and fits.
+#' @export
+testThreewayInteraction <- function(feature_pairs, trait_matrix, sample_metadata, vcf_file, model0, model1, p_only = TRUE){
+  #Make sure that feature pairs is a data frame with only one row
+  assertthat::assert_that(nrow(feature_pairs) == 1)
+  assertthat::assert_that(assertthat::has_name(feature_pairs, "master_id"))
+  assertthat::assert_that(assertthat::has_name(feature_pairs, "dependent_id"))
+  assertthat::assert_that(assertthat::has_name(feature_pairs, "snp_id"))
+  
+  #Extract trait data
+  master_cqn = data_frame(sample_id = colnames(trait_matrix), cqn = trait_matrix[feature_pairs$master_id,], peak_type = "master")
+  dependent_cqn = data_frame(sample_id = colnames(trait_matrix), cqn = trait_matrix[feature_pairs$dependent_id,], peak_type = "dependent")
+  cqn_data = rbind(master_cqn, dependent_cqn)
+  
+  #genotypes
+  geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[feature_pairs$snp_id,])
+  
+  #Everything
+  joint_data = dplyr::left_join(cqn_data, sample_metadata, by = "sample_id") %>% 
+    dplyr::left_join(geno_data, by = "genotype_id")
+  
+  #Compare models
+  model0_fit = lm(model0, joint_data)
+  model1_fit = lm(model1, joint_data)
+  result = anova(model0_fit, model1_fit)
+  
+  #Return value
+  if(p_only){
+    return(result[[6]][2])
+  }
+  else{
+    return(list(anova = result, interaction_model = interaction, data = joint_data))
+  }
+}
+
