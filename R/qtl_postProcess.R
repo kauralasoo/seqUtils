@@ -81,39 +81,6 @@ calculatePermutationPvalues <- function(raw_pvalues, max_permutation_pvalues){
   return(permutation_pvalues)
 }
 
-#' Filter QTL interaction test results based on RASQUAL effect size
-#'
-#' @param conditions Character vector of condition names.
-#' @param interaction_result Output from the matrixeqtlTestInteraction function.
-#' @param pvalue_list List of RASQUAL gene-SNP results by condition.
-#' @param fdr_thresh Interaction test FDR threshold. 
-#' 
-#' @return Data frame augmented with Rasqual effect sizes and p-values in each condition.
-#' @export
-filterInteractionResults <- function(conditions, interaction_result, pvalue_list, fdr_thresh = 0.1){
-  
-  #Filter interaction tests by p-value
-  interaction_candidates = dplyr::filter(interaction_result, p_fdr <= fdr_thresh)
-  
-  #Extract RASQUAL results for significant gene-SNP pairs
-  res_A = dplyr::semi_join(pvalue_list[[ conditions[1] ]], interaction_candidates, by = c("gene_id", "snp_id")) %>%
-    dplyr::select(gene_id, snp_id, beta, p_nominal) %>%
-    dplyr::rename(beta_A = beta, p_nominal_A = p_nominal)
-  res_B = dplyr::semi_join(pvalue_list[[ conditions[2] ]], interaction_candidates, by = c("gene_id", "snp_id")) %>%
-    dplyr::select(gene_id, snp_id, beta, p_nominal) %>%
-    dplyr::rename(beta_B = beta, p_nominal_B = p_nominal)
-  
-  #Join all of the data together and filter
-  res = dplyr::left_join(interaction_candidates, res_A, by = c("gene_id", "snp_id")) %>% 
-    tbl_df() %>% 
-    dplyr::left_join(res_B, by =c("gene_id","snp_id")) %>% 
-    dplyr::mutate(beta_diff = beta_B - beta_A) %>%
-    dplyr::mutate(abs_beta_min = pmin(abs(beta_A), abs(beta_B))) %>%
-    dplyr::group_by(gene_id, snp_id) %>%
-    dplyr::mutate(min_condition = which.min(c(abs(beta_A), abs(beta_B)))) %>%
-    dplyr::mutate(min_condition_name = ifelse(min_condition == 1, conditions[1], conditions[2]))
-  return(res)
-}
 
 #' Filter SNPs based on R2
 #'
@@ -150,6 +117,16 @@ filterGeneR2 <- function(gene_df, genotypes, r2_thresh){
   gene_df[colSums(r2 > r2_thresh) == 0,]
 }
 
+#' Calculate R2 between the lead SNP and all other SNPs in the data frame and adds corresponding column.
+#'
+#' Assumes that lead SNP is in the first row of the gene_df data frame 
+#' (data frame is sorted by p-value).
+#'
+#' @param gene_df Data frame of QTL snps (required column: gene_id)
+#' @param genotypes Genotype matrix
+#'
+#' @return gene_df data frame with R2 column added.
+#' @export
 addR2FromLead <- function(gene_df, genotypes){
   
   assertthat::assert_that(!is.null(gene_df))
@@ -160,6 +137,7 @@ addR2FromLead <- function(gene_df, genotypes){
   
   #If more than one SNP then calculate R2
   if( nrow(gene_df) > 1 ){ 
+    #Calculate R2 between the first SNP in the genotype matrix and all other SNPs
     r2 = apply(genotype_matrix, 2, function(x, y){ cor(x,y,use = "pairwise.complete.obs") }, genotype_matrix[,1])^2
     gene_df = dplyr::mutate(gene_df, R2 = r2)
   } else { #If only one SNP then set R2 to 1
@@ -167,87 +145,3 @@ addR2FromLead <- function(gene_df, genotypes){
   }
   return(gene_df)
 }
-
-
-testInterctionsBetweenPairs <- function(condition_pair, rasqual_min_hits, combined_expression_data, covariate_names, vcf_file, fdr_thresh = 0.1){
-  #Extraxt gene name map
-  gene_name_map = dplyr::select(combined_expression_data$gene_metadata, gene_id, gene_name)
-  
-  #Find independent pairs of SNPs
-  min_pvalue_df = ldply(rasqual_min_hits[condition_pair], .id = "condition_name")
-  joint_pairs = dplyr::select(min_pvalue_df, gene_id, snp_id) %>% unique()
-  joint_pairs_filtered = filterHitsR2(joint_pairs, vcf_file$genotypes, 0.2)
-
-  #Test pairwise interactions using matrixeQTL
-  interaction_df = matrixeqtlTestInteraction(condition_pair, joint_pairs_filtered, combined_expression_data, vcf_file, covariate_names)
-  interaction_effects = filterInteractionResults(condition_pair, interaction_df, rasqual_selected_pvalues, fdr_thresh = fdr_thresh) %>%
-    dplyr::left_join(gene_name_map, by = "gene_id")
-  return(interaction_effects)
-}
-
-#' Test for interaction between genotype and condition using ANOVA model
-#'
-#' @param gene_id Tested gene id
-#' @param snp_id Tested SNP id
-#' @param trait_matrix expression or chromatin accessibility matrix
-#' @param sample_metadata data frame with sample metadata and covariates
-#' @param vcf_file VCF file from gdsToMatrix() function
-#' @param qtl_formula Formula for the model with just genotype and condition terms
-#' @param interaction_formula Formula for the model with interaction term betweeb genotype and condition
-#'
-#' @return Either a pvalue (if return_value == "ponly") or the full linear model object.
-#' @export
-testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
-  
-  #Some basic assertions
-  assertthat::assert_that(is.matrix(trait_matrix))
-  assertthat::assert_that(assertthat::has_name(sample_metadata, "sample_id"))
-  assertthat::assert_that(assertthat::has_name(sample_metadata, "genotype_id"))
-  
-  #Extract data
-  exp_data = data_frame(sample_id = colnames(trait_matrix), expression = trait_matrix[gene_id,])
-  geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
-  
-  sample_data = dplyr::left_join(sample_metadata, exp_data, by = "sample_id") %>%
-    dplyr::left_join(geno_data, by = "genotype_id")
-  
-  #apply two models to the data and compare them using anova
-  no_interaction = lm(qtl_formula, as.data.frame(sample_data))
-  interaction = lm(interaction_formula, as.data.frame(sample_data))
-  res = anova(no_interaction, interaction)
-  
-  #Return value
-  if(return_value == "ponly"){
-    return(res[[6]])
-  }
-  else{
-    return(list(anova = res, interaction_model = interaction))
-  }
-}
-
-#Run testInteraction on a data.frame of gene-SNP pairs
-testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
-  #Plot eQTL results for a list of gene and SNP pairs.
-  result = list()
-  for(i in 1:nrow(snps_df)){
-    gene_id = snps_df[i,]$gene_id
-    snp_id = snps_df[i,]$snp_id
-    print(gene_id)
-    test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
-    result[[paste(gene_id,snp_id, sep = ":")]] = test
-  }
-  return(result)
-}
-
-#Post-process results from testMultipleInteractions
-postProcessInteractionPvalues <- function(pvalue_list){
-  res = plyr::ldply(pvalue_list, .id = "id") %>% 
-    tidyr::separate(id, into = c("gene_id", "snp_id"), sep = ":") %>%
-    dplyr::rename(p_nominal = V2) %>% tbl_df() %>%
-    dplyr::select(gene_id, snp_id, p_nominal) %>%
-    dplyr::mutate(p_fdr = p.adjust(p_nominal,"fdr")) %>%
-    dplyr::mutate(qvalue = qvalue::qvalue(p_nominal)$qvalues) %>%
-    dplyr::arrange(p_nominal)
-  return(res)
-}
-
