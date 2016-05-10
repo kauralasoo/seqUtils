@@ -5,7 +5,7 @@
 \title{Applies quantifyMotifDisruption to a list of motifs}
 \usage{
 quantifyMultipleMotifs(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences,
-  snp_metadata, window_size = 25, max_score_thresh = 0.8,
+  snp_metadata, window_size = 25, max_score_thresh = 0.7,
   rel_diff_thresh = 0)
 }
 \arguments{

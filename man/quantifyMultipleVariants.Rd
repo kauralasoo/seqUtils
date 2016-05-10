@@ -5,7 +5,7 @@
 \title{Applies quantifyMultipleMotifs to a data frame of peak and snp ids}
 \usage{
 quantifyMultipleVariants(peak_snp_list, motif_list, peak_metadata,
-  peak_sequences, snp_metadata)
+  peak_sequences, snp_metadata, window_size = 25)
 }
 \arguments{
 \item{peak_snp_list}{data frame of peak and snp ids (required columns: gene_id, snp_id)}
