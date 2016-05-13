@@ -281,12 +281,12 @@ fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_l
   return(enrichment)
 }
 
-saveMotifListLogos <- function(motif_list, outdir){
+saveMotifListLogos <- function(motif_list, outdir, width, height){
   motif_names = names(motif_list)
   for(motif_name in motif_names){
     motif = motif_list[[motif_name]]
     outfile = file.path(outdir, paste0(motif_name, ".pdf"))
-    pdf(outfile)
+    pdf(outfile, width, height)
     seqLogo::seqLogo(motif)
     dev.off()
   }
