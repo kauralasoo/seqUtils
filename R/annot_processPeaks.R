@@ -36,3 +36,32 @@ makeUnionPeaks <- function(peak_list, seqlevels, id_prefix){
   elementMetadata(union_peaks) = metadata
   return(union_peaks)
 }
+
+#' Caclulate distance between the centres of peak pairs
+#'
+#' @param peak_df Data frame with two columns containing peak_ids (required columns: master_id, dependent_id)
+#' @param peak_metadata Matrix with peak metadata (required_columns: gene_id, chr, start, end)
+#'
+#' @return peak_df with dependent_centre, master_centre and distance column added.
+#' @export
+calculatePeakDistance <- function(peak_df, peak_metadata){
+  assertthat::assert_that(assertthat::has_name(peak_df, "master_id"))
+  assertthat::assert_that(assertthat::has_name(peak_df, "dependent_id"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "chr"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "start"))
+  assertthat::assert_that(assertthat::has_name(peak_metadata, "end"))
+  
+  #Calculate peak centres
+  peak_centres = dplyr::mutate(peak_metadata, centre = floor(start+((end-start)/2)) )
+  filtered_peak_centres = dplyr::filter(peak_centres, gene_id %in% union(peak_df$dependent_id, peak_df$master_id)) %>%
+    dplyr::select(gene_id, centre)
+  
+  #Calculate distance between two pairs
+  matched_centres = dplyr::left_join(peak_df, filtered_peak_centres, by = c("dependent_id" = "gene_id")) %>% 
+    dplyr::rename(dependent_centre = centre) %>% 
+    dplyr::left_join(filtered_peak_centres, by = c("master_id" = "gene_id")) %>% 
+    dplyr::rename(master_centre = centre) %>%
+    dplyr::mutate(distance = master_centre - dependent_centre)
+  return(matched_centres)
+}
