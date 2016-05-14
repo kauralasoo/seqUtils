@@ -86,26 +86,6 @@ addOverlappingPeaks <- function(qtl_credible_set, atac_peak_metadata, extend = 0
 }
 
 
-fetchCredibleSets <- function(qtl_df, gene_metadata, peak_metadata, rasqual_tabix_file, vcf_file, cis_window){
-  
-  #Construct GRanges object with the cis regions of the genes
-  qtl_granges = rasqualTools::constructGeneRanges(qtl_df, gene_metadata, cis_window)
-  
-  #Fetch credible sets for each gene
-  peak_list = idVectorToList(qtl_df$gene_id)
-  peak_cs = purrr::map(peak_list, ~rasqualTools::tabixFetchGenesQuick(.,rasqual_tabix_file, qtl_granges)[[1]] %>%
-                         dplyr::arrange(p_nominal) %>%
-                         addR2FromLead(vcf_file$genotypes) %>% 
-                         dplyr::filter(R2 > 0.8) %>% 
-                         addOverlappingPeaks(.,peak_metadata, extend = 50)
-  )
-  
-  #Convert credible sets into a data frame
-  peak_cs_df = purrr::map_df(peak_cs, ~dplyr::mutate(.,chr = as.character(chr))) %>%
-    dplyr::filter(chr != "X") #QTLs on X likely FPs
-  return(peak_cs_df)
-}
-
 #Calculate summary stats on the credible sets
 summariseCredibleSets <- function(credible_sets_df){
   
@@ -141,5 +121,25 @@ summariseCredibleSets <- function(credible_sets_df){
   return(lead_snps)
 }
 
+constructClustersFromGenePairs <- function(gene_pairs, cluster_name_prefix = "gene_cluster_"){
+  assertthat::assert_that(ncol(gene_pairs) == 2)
+  
+  #Construct igraph object and extract clusters
+  graph = igraph::graph_from_data_frame(gene_pairs, directed = FALSE)
+  clusters = igraph::clusters(graph)
+  
+  #Make df
+  clusters_df = data_frame(gene_id = names(clusters$membership), cluster_number = clusters$membership) %>% 
+    arrange(cluster_number) %>% 
+    dplyr::mutate(cluster_id = paste0(cluster_name_prefix, cluster_number)) %>% 
+    dplyr::select(gene_id, cluster_id)
+  
+  #Count genes in clusters
+  gene_counts = dplyr::group_by(clusters_df, cluster_id) %>% 
+    dplyr::summarise(gene_count = length(gene_id))
+  clusters_df = dplyr::left_join(clusters_df, gene_counts, by = "cluster_id")
+  return(clusters_df)
+  
+}
 
 
