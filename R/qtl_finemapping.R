@@ -142,4 +142,17 @@ constructClustersFromGenePairs <- function(gene_pairs, cluster_name_prefix = "ge
   
 }
 
+credibleSetJaccard <- function(row_df, credible_sets){
+  
+  #Extract credible sets
+  master_cs = credible_sets[[row_df$master_condition]][[row_df$master_id]] %>% dplyr::arrange(p_nominal)
+  dependent_cs = credible_sets[[row_df$dependent_condition]][[row_df$dependent_id]] %>% dplyr::arrange(p_nominal)
+
+  jaccard = length(intersect(master_cs$snp_id, dependent_cs$snp_id)) / length(union(master_cs$snp_id, dependent_cs$snp_id))
+  res = data_frame(jaccard = jaccard, snp_id = master_cs$snp_id[1], p_nominal = master_cs$p_nominal[1])
+  return(res)
+}
+
+
+
 
