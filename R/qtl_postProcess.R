@@ -145,3 +145,14 @@ addR2FromLead <- function(gene_df, genotypes){
   }
   return(gene_df)
 }
+
+#' Add expected p-value for Q-Q plots
+#'
+#' @param pvalue_df 
+#'
+#' @return pvalue_df with p_expected column
+#' @export
+addExpectedPvalue <- function(pvalue_df){
+  dplyr::arrange(pvalue_df, p_eigen) %>%
+    dplyr::mutate(p_expected = c(1:length(p_eigen))/length(p_eigen))
+}
