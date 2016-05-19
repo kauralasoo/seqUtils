@@ -55,13 +55,13 @@ calculatePeakDistance <- function(peak_df, peak_metadata){
   #Calculate peak centres
   peak_centres = dplyr::mutate(peak_metadata, centre = floor(start+((end-start)/2)) )
   filtered_peak_centres = dplyr::filter(peak_centres, gene_id %in% union(peak_df$dependent_id, peak_df$master_id)) %>%
-    dplyr::select(gene_id, centre)
+    dplyr::select(gene_id, chr, centre)
   
   #Calculate distance between two pairs
   matched_centres = dplyr::left_join(peak_df, filtered_peak_centres, by = c("dependent_id" = "gene_id")) %>% 
-    dplyr::rename(dependent_centre = centre) %>% 
+    dplyr::rename(dependent_centre = centre,dependent_chr = chr) %>% 
     dplyr::left_join(filtered_peak_centres, by = c("master_id" = "gene_id")) %>% 
-    dplyr::rename(master_centre = centre) %>%
+    dplyr::rename(master_centre = centre, master_chr = chr) %>%
     dplyr::mutate(distance = master_centre - dependent_centre)
   return(matched_centres)
 }
