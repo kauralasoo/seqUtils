@@ -13,7 +13,8 @@
 #' @return ggplot2 object
 #' @author Kaur Alasoo
 #' @export 
-plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_matrix, sample_metadata, gene_metadata){
+plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_matrix, sample_metadata, 
+                     gene_metadata, return_df = FALSE){
   
   #Extraxt gene_name
   gene_name = dplyr::filter(gene_metadata, gene_id == selected_gene_id)$gene_name
@@ -28,17 +29,35 @@ plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_
   exprs_df = dplyr::data_frame(sample_id = names(expression_vector), norm_exp = expression_vector)
   
   #Join all of the data together
+  g_id = genotype_id
   plot_df = dplyr::left_join(sample_metadata, exprs_df, by ="sample_id") %>%
-    left_join(genotype_df, by = "genotype_id")
+    dplyr::left_join(genotype_df, by = "genotype_id") %>%
+    dplyr::mutate(snp_id = g_id, gene_name = gene_name)
   
-  plot = ggplot2::ggplot(plot_df, ggplot2::aes(x = genotype_value, y = norm_exp)) + 
-    ggplot2::facet_wrap(~ condition_name) + 
+  #Either return raw data frame or make plot and return ggplot2 object
+  if (return_df){
+    return(plot_df)
+  } else{
+    plot = ggplot2::ggplot(plot_df, ggplot2::aes(x = genotype_value, y = norm_exp)) + 
+      ggplot2::facet_wrap(~ condition_name) + 
+      ggplot2::geom_boxplot(outlier.shape = NA) + 
+      ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .1)) + 
+      ggplot2::ylab("Normalized expression") +
+      ggplot2::xlab(genotype_id) + 
+      ggplot2::labs(title = gene_name)
+    
+    return(plot)
+  }
+}
+
+plotQtlRow <- function(qtl_df){
+  plot = ggplot2::ggplot(qtl_df, ggplot2::aes(x = genotype_value, y = norm_exp)) + 
+    ggplot2::facet_grid(~condition_name) + 
     ggplot2::geom_boxplot(outlier.shape = NA) + 
-    ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .1)) + 
+    ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .2), size = 0.5) + 
     ggplot2::ylab("Normalized expression") +
-    ggplot2::xlab(genotype_id) + 
-    ggplot2::labs(title = gene_name)
-  
+    ggplot2::xlab(qtl_df$snp_id[1]) + 
+    ggplot2::labs(title = qtl_df$gene_name[1])
   return(plot)
 }
 
