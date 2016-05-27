@@ -61,3 +61,7 @@ matrixExtractPairs <- function(row_name, col_name, matrix){
   return(matrix[row_name, col_name])
 }
 
+#' Colour plaette of four colours to represent experimental conditions
+conditionPalette <- function(){
+  c("#67a9cf","#2166ac","#ef8a62","#b2182b")
+}
