@@ -142,17 +142,58 @@ constructClustersFromGenePairs <- function(gene_pairs, cluster_name_prefix = "ge
   
 }
 
-credibleSetJaccard <- function(row_df, credible_sets){
+credibleSetJaccard <- function(row_df, master_credible_sets, dependent_credible_sets){
   
   #Extract credible sets
-  master_cs = credible_sets[[row_df$master_condition]][[row_df$master_id]] %>% dplyr::arrange(p_nominal)
-  dependent_cs = credible_sets[[row_df$dependent_condition]][[row_df$dependent_id]] %>% dplyr::arrange(p_nominal)
+  master_cs = master_credible_sets[[row_df$master_condition]][[row_df$master_id]] %>% dplyr::arrange(p_nominal)
+  dependent_cs = dependent_credible_sets[[row_df$dependent_condition]][[row_df$dependent_id]] %>% dplyr::arrange(p_nominal)
 
+  #Calculate two types of jaccard indexes
   jaccard = length(intersect(master_cs$snp_id, dependent_cs$snp_id)) / length(union(master_cs$snp_id, dependent_cs$snp_id))
-  res = data_frame(jaccard = jaccard, snp_id = master_cs$snp_id[1], p_nominal = master_cs$p_nominal[1])
+  min_jaccard = length(intersect(master_cs$snp_id, dependent_cs$snp_id)) / 
+    min(length(master_cs$snp_id), length(dependent_cs$snp_id))
+  res = data_frame(jaccard = jaccard, min_jaccard = min_jaccard, snp_id = master_cs$snp_id[1], p_nominal = master_cs$p_nominal[1])
   return(res)
 }
 
+#Convert credible sets into gigantic data frame
+credibleSetsToDf <- function(credible_sets){
+  result = purrr::map_df(credible_sets, ~purrr::map_df(., 
+                  ~dplyr::mutate(.,chr = as.character(chr))) %>% 
+                  dplyr::filter(chr != "X"), .id = "condition_name")
+  return(result)
+}
 
+credibleSetsToGranges <- function(credible_sets_df){
+  granges = credible_sets_df %>% 
+    dplyr::transmute(condition_name, gene_id, snp_id, chr, seqnames = chr, start = pos, end = pos, strand = "+") %>% 
+    dataFrameToGRanges()
+  return(granges)
+}
+
+findCredibleSetOverlaps <- function(master_credible_set, dependent_credible_set){
+  #Find overlaps
+  olaps = findOverlaps(master_credible_set, dependent_credible_set)
+  
+  #Eextract query overlaps
+  queries = master_credible_set[queryHits(olaps),] %>% 
+    elementMetadata() %>% as.data.frame() %>% 
+    dplyr::transmute(master_condition = condition_name, master_id = gene_id, chr1 = chr) %>% 
+    tbl_df()
+  #Extract subject overlaps
+  subjects = dependent_credible_set[subjectHits(olaps),] %>% 
+    elementMetadata() %>% as.data.frame() %>% 
+    dplyr::transmute(dependent_condition = condition_name, dependent_id = gene_id, chr2 = chr) %>% 
+    tbl_df()
+  
+  #Identify all genes that share at least one SNP in their credible set
+  pairwise_shared = dplyr::bind_cols(queries, subjects) %>% 
+    unique() %>% 
+    dplyr::filter(chr1 == chr2) %>% 
+    dplyr::filter(master_id != dependent_id) %>% 
+    dplyr::select(master_id, master_condition, dependent_id, dependent_condition) %>% 
+    unique()
+  return(pairwise_shared)
+}
 
 
