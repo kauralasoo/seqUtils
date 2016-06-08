@@ -98,3 +98,13 @@ constructMatrixEQTLCovariates <- function(sample_metadata, covariate_names, id_c
   colnames(cov_matrix) = col_ids
   return(cov_matrix)
 }
+
+matrixEQTLExtractCisQTLs <- function(matrixeqtl_object, snp_positions){
+  renamed_data = dplyr::transmute(matrixeqtl_object$cis$eqtls, gene_id = as.vector(gene), snp_id = as.vector(snps), 
+                                  statistic, p_nominal = pvalue, beta) %>% 
+    tbl_df()
+  selected_snps = dplyr::filter(snp_positions, snpid %in% renamed_data$snp_id) %>% 
+    dplyr::rename(snp_id = snpid)
+  joint_result = dplyr::left_join(renamed_data, selected_snps, by = "snp_id")
+  return(joint_result)
+}
