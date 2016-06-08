@@ -233,8 +233,9 @@ quantifyMotifDisruption <- function(pwm, peak_id, snp_id, peak_metadata, peak_se
 #' @param rel_diff_thresh Difference in relative binding score must be greater than this (default = 0)
 quantifyMultipleMotifs <- function(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25, 
                                    max_score_thresh = 0.7, rel_diff_thresh = 0){
-  motif_disruptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, peak_metadata, peak_sequences, snp_metadata, window_size) %>%
-                                   dplyr::filter(max_rel_score >= max_score_thresh, rel_diff > rel_diff_thresh))
+  motif_disruptions = purrr::map(as.list(pwm_list), ~quantifyMotifDisruption(., peak_id, snp_id, peak_metadata, 
+                                                                             peak_sequences,snp_metadata, window_size) %>%
+                                   dplyr::filter(max_rel_score >= max_score_thresh, abs(rel_diff) > rel_diff_thresh))
   result_df = purrr::map_df(motif_disruptions, ~dplyr::mutate(.,strand = as.character(strand), motif_id = as.character(motif_id)))
   return(result_df)
 }
