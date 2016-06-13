@@ -112,15 +112,94 @@ fimoRelativeEnrichment <- function(foreground, background = NULL, fimo_hits, pea
     dplyr::ungroup()
   
   #Motif_enrichment
-  enrichments = dplyr::left_join(bg_matches, fg_matches, by = "motif_id") %>% 
-    dplyr::mutate(enrichment = (n_fg_matches/fg_length)/(n_bg_matches/bg_length)) %>% 
-    arrange(-enrichment) %>% 
-    dplyr::group_by(motif_id) %>%
-    dplyr::mutate(p_hyper = phyper(n_fg_matches - 1, n_bg_matches, bg_length - n_bg_matches, fg_length, lower.tail = FALSE)) %>%
-    dplyr::mutate(p_fdr = p.adjust(p_hyper, "fdr")) %>%
+  enrichments = dplyr::left_join(bg_matches, fg_matches, by = "motif_id") %>%
+    dplyr::filter(!is.na(n_fg_matches)) %>% #Not sure why this is necessary
+    purrr::by_row(., ~subsampleFisherTest(.$n_fg_matches, .$fg_length, .$n_bg_matches, .$bg_length), .collate = "rows")
+  return(enrichments)
+}
+
+
+#' Perform Fisher's Exact test when sample is a subsample of a larger population
+#' 
+#' Return a tidy data frame with results (p-value, OR, confidence intervals and their log2 coversions)
+#'
+#' @param sample_hits number of hits in the sample
+#' @param sample_size sample size
+#' @param total_hits number of hits in the total populaton
+#' @param total_size population size
+#'
+#' @return data frame with p-value, OR and confidence intervals
+#' @export
+subsampleFisherTest <- function(sample_hits, sample_size, total_hits, total_size){
+  assertthat::assert_that(assertthat::is.number(sample_hits))
+  assertthat::assert_that(assertthat::is.number(sample_size))
+  assertthat::assert_that(assertthat::is.number(total_hits))
+  assertthat::assert_that(assertthat::is.number(total_size))
+  
+  #Set up data for the test
+  bg_hits = total_hits - sample_hits
+  sample_fails = sample_size - sample_hits
+  bg_fails = total_size - total_hits - sample_size + sample_hits
+  
+  #Perform Fisher's Exact Test
+  fet_matrix = matrix(c(sample_hits, bg_hits, sample_fails, bg_fails), 2,2)
+  test = fisher.test(fet_matrix)
+  
+  #Extract results
+  results_df = data_frame(fisher_pvalue = test$p.value, OR = test$estimate, 
+                          ci_lower = test$conf.int[1], ci_higher = test$conf.int[2]) %>%
+    dplyr::mutate(OR_log2 = log(OR,2), ci_lower_log2 = log(ci_lower,2), 
+                  ci_higher_log2 = log(ci_higher,2))
+  return(results_df)
+  
+  #hyper = phyper(sample_hits-1, motif_row$baseline_disruption, 
+  #       motif_row$baseline_peak_count-motif_row$baseline_disruption, 
+  #       motif_row$cluster_size, lower.tail = FALSE)
+  #print(hyper)
+}
+
+
+#' Censor log2 odds ratios and their confidence intervals for easier plotting
+#'
+#' @param or_df data frame of ORs
+#' @param min_OR_log2 
+#' @param min_CI_lower_log2 
+#'
+#' @return Modified or_df with censored values
+#' @export
+censorLog2OR <- function(or_df, min_OR_log2 = -3, min_CI_lower_log2 = -4){
+  result = dplyr::mutate(or_df, OR_log2 = ifelse(OR_log2 < min_OR_log2, min_OR_log2, OR_log2)) %>%
+    dplyr::mutate(ci_lower_log2 = ifelse(ci_lower_log2 < min_CI_lower_log2, min_CI_lower_log2, ci_lower_log2)) %>%
+    dplyr::mutate(ci_higher_log2 = ifelse(ci_higher_log2 < min_CI_lower_log2, min_CI_lower_log2, ci_higher_log2))
+  return(result)
+}
+
+fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_length){
+  
+  #Count the number of mathces in the background sequences
+  bg_matches = dplyr::group_by(fimo_promoter_hits, motif_id) %>% 
+    dplyr::summarise(n_bg_matches = length(seq_name)) %>% 
+    dplyr::mutate(bg_length = bg_seq_length) %>%
     dplyr::ungroup()
   
-  return(enrichments)
+  #Count the number of matches in the foreground sequences
+  fg_matches = dplyr::group_by(fimo_hits, motif_id) %>%
+    dplyr::summarise(n_fg_matches = length(motif_id)) %>%
+    dplyr::mutate(fg_length = fg_seq_length) %>%
+    dplyr::ungroup()
+  
+  #Put the two lists together
+  joint_matches = dplyr::left_join(bg_matches, fg_matches, by = "motif_id") %>%
+    dplyr::mutate(fold_enrichment = (n_fg_matches/fg_length)/(n_bg_matches/bg_length)) %>% 
+    dplyr::arrange(-fold_enrichment)
+  
+  #Peform Fisher's Exact test
+  enrichment = joint_matches %>% 
+    dplyr::group_by(motif_id) %>% 
+    dplyr::mutate(p_nominal = fisher.test( matrix(c(n_bg_matches, bg_length-n_bg_matches, n_fg_matches, fg_length-n_fg_matches), nrow = 2) )[["p.value"]] ) %>%
+    dplyr::ungroup()
+  
+  return(enrichment)
 }
 
 modifyDNAString <- function(dna_string, pos, ref_value, alt_value){
@@ -253,35 +332,6 @@ quantifyMultipleVariants <- function(peak_snp_list, motif_list, peak_metadata, p
   return(motif_disruptions)
 }
 
-
-fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_length){
-  
-  #Count the number of mathces in the background sequences
-  bg_matches = dplyr::group_by(fimo_promoter_hits, motif_id) %>% 
-    dplyr::summarise(n_bg_matches = length(seq_name)) %>% 
-    dplyr::mutate(bg_length = bg_seq_length) %>%
-    dplyr::ungroup()
-  
-  #Count the number of matches in the foreground sequences
-  fg_matches = dplyr::group_by(fimo_hits, motif_id) %>%
-    dplyr::summarise(n_fg_matches = length(motif_id)) %>%
-    dplyr::mutate(fg_length = fg_seq_length) %>%
-    dplyr::ungroup()
-  
-  #Put the two lists together
-  joint_matches = dplyr::left_join(bg_matches, fg_matches, by = "motif_id") %>%
-    dplyr::mutate(fold_enrichment = (n_fg_matches/fg_length)/(n_bg_matches/bg_length)) %>% 
-    dplyr::arrange(-fold_enrichment)
-  
-  #Peform Fisher's Exact test
-  enrichment = joint_matches %>% 
-    dplyr::group_by(motif_id) %>% 
-    dplyr::mutate(p_nominal = fisher.test( matrix(c(n_bg_matches, bg_length-n_bg_matches, n_fg_matches, fg_length-n_fg_matches), nrow = 2) )[["p.value"]] ) %>%
-    dplyr::ungroup()
-  
-  return(enrichment)
-}
-
 saveMotifListLogos <- function(motif_list, outdir, width, height){
   motif_names = names(motif_list)
   for(motif_name in motif_names){
@@ -303,60 +353,4 @@ PWMSimilarityMatrix <- function(pwm_list, method){
     }
   }
   return(sim_matrix)
-}
-
-
-#' Perform Fisher's Exact test when sample is a subsample of a larger population
-#' 
-#' Return a tidy data frame with results (p-value, OR, confidence intervals and their log2 coversions)
-#'
-#' @param sample_hits number of hits in the sample
-#' @param sample_size sample size
-#' @param total_hits number of hits in the total populaton
-#' @param total_size population size
-#'
-#' @return data frame with p-value, OR and confidence intervals
-#' @export
-subsampleFisherTest <- function(sample_hits, sample_size, total_hits, total_size){
-  assertthat::assert_that(assertthat::is.number(sample_hits))
-  assertthat::assert_that(assertthat::is.number(sample_size))
-  assertthat::assert_that(assertthat::is.number(total_hits))
-  assertthat::assert_that(assertthat::is.number(total_size))
-  
-  #Set up data for the test
-  bg_hits = total_hits - sample_hits
-  sample_fails = sample_size - sample_hits
-  bg_fails = total_size - total_hits - sample_size + sample_hits
-  
-  #Perform Fisher's Exact Test
-  fet_matrix = matrix(c(sample_hits, bg_hits, sample_fails, bg_fails), 2,2)
-  test = fisher.test(fet_matrix)
-  
-  #Extract results
-  results_df = data_frame(fisher_pvalue = test$p.value, OR = test$estimate, 
-                          ci_lower = test$conf.int[1], ci_higher = test$conf.int[2]) %>%
-    dplyr::mutate(OR_log2 = log(OR,2), ci_lower_log2 = log(ci_lower,2), 
-                  ci_higher_log2 = log(ci_higher,2))
-  return(results_df)
-  
-  #hyper = phyper(sample_hits-1, motif_row$baseline_disruption, 
-  #       motif_row$baseline_peak_count-motif_row$baseline_disruption, 
-  #       motif_row$cluster_size, lower.tail = FALSE)
-  #print(hyper)
-}
-
-
-#' Censor log2 odds ratios and their confidence intervals for easier plotting
-#'
-#' @param or_df data frame of ORs
-#' @param min_OR_log2 
-#' @param min_CI_lower_log2 
-#'
-#' @return Modified or_df with censored values
-#' @export
-censorLog2OR <- function(or_df, min_OR_log2 = -3, min_CI_lower_log2 = -4){
-  result = dplyr::mutate(or_df, OR_log2 = ifelse(OR_log2 < min_OR_log2, min_OR_log2, OR_log2)) %>%
-    dplyr::mutate(ci_lower_log2 = ifelse(ci_lower_log2 < min_CI_lower_log2, min_CI_lower_log2, ci_lower_log2)) %>%
-    dplyr::mutate(ci_higher_log2 = ifelse(ci_higher_log2 < min_CI_lower_log2, min_CI_lower_log2, ci_higher_log2))
-  return(result)
 }
