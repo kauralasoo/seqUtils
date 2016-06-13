@@ -193,11 +193,21 @@ fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_l
     dplyr::mutate(fold_enrichment = (n_fg_matches/fg_length)/(n_bg_matches/bg_length)) %>% 
     dplyr::arrange(-fold_enrichment)
   
-  #Peform Fisher's Exact test
-  enrichment = joint_matches %>% 
-    dplyr::group_by(motif_id) %>% 
-    dplyr::mutate(p_nominal = fisher.test( matrix(c(n_bg_matches, bg_length-n_bg_matches, n_fg_matches, fg_length-n_fg_matches), nrow = 2) )[["p.value"]] ) %>%
-    dplyr::ungroup()
+  #Peform Fisher's Exact test on each motif
+  fisher_tests = purrr::by_row(joint_matches, ~fisher.test(matrix(c(.$n_fg_matches, .$fg_length-.$n_fg_matches,
+                              .$n_bg_matches, .$bg_length-.$n_bg_matches), 2, 2) ), .to = "fisher_test")
+  
+  #Extract p-values and ORs
+  enrichment = purrr::by_row(fisher_tests, function(df_row){
+    test = df_row$fisher_test[[1]]
+    result = data_frame(fisher_pvalue = test$p.value,
+                        OR = test$estimate, 
+                        ci_lower = test$conf.int[1], 
+                        ci_higher = test$conf.int[2])
+  }, .collate = "rows") %>%
+    dplyr::mutate(OR_log2 = log(OR,2), ci_lower_log2 = log(ci_lower,2), 
+                  ci_higher_log2 = log(ci_higher,2)) %>%
+    dplyr::select(-fisher_test, -.row)
   
   return(enrichment)
 }
