@@ -65,26 +65,4 @@ constructCredibleSet <- function(dataset, threshold = 0.95){
   return(result)
 }
 
-testCredibleSetOverlapConditions <- function(gene_id, db_table1, db_table2, n1, n2, threshold = 0.95){
-  d1_credible_set = fetchSQLite(db_table1, selected_gene_id = gene_id) %>%
-    addAssociationPosterior(n1) %>%
-    constructCredibleSet(threshold)
-  d2_credible_set = fetchSQLite(db_table2, selected_gene_id = gene_id) %>%
-    addAssociationPosterior(n2) %>%
-    constructCredibleSet(threshold)
-  overlap = length(intersect(d1_credible_set$snp_id, d2_credible_set$snp_id))/length(union(d1_credible_set$snp_id, d2_credible_set$snp_id))
-  return(overlap)
-}
-
-testColocConditons <- function(gene_id, db_table1, db_table2, n1, n2){
-  p_values_1 = fetchSQLite(db_table1, selected_gene_id = gene_id)
-  print(p_values_1)
-  p_values_2 = fetchSQLite(db_table2, selected_gene_id = gene_id)
-  print(p_values_2)
-  
-  coloc = testColoc(p_values_1, p_values_2, n1, n2)
-  return(coloc$summary)
-}
-
-
 
