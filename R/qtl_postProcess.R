@@ -95,6 +95,9 @@ calculatePermutationPvalues <- function(raw_pvalues, max_permutation_pvalues){
 #' @export
 filterHitsR2 <- function(feature_snp_pairs, genotypes, R2_thresh = 0.8){
   
+  #Filter genotypes matrix to only include the relevant variants
+  genotypes = genotypes[unique(feature_snp_pairs$snp_id),]
+  
   #Count SNPs per gene
   snp_count = dplyr::group_by(feature_snp_pairs, gene_id) %>% dplyr::summarise(snp_count = length(snp_id))
   single_snps = dplyr::semi_join(feature_snp_pairs, dplyr::filter(snp_count, snp_count == 1), by = "gene_id")
@@ -155,4 +158,22 @@ addR2FromLead <- function(gene_df, genotypes){
 addExpectedPvalue <- function(pvalue_df){
   dplyr::arrange(pvalue_df, p_eigen) %>%
     dplyr::mutate(p_expected = c(1:length(p_eigen))/length(p_eigen))
+}
+
+#' Extract all QTLs at a specific FDR level from a list of min pvalues by condition
+#'
+#' Multiple variants per gene are sorted by p-value
+#'
+#' @param min_pvalue_list List of QTLs per condition
+#' @param fdr_cutoff 
+#'
+#' @return Data frame of QTLs
+#' @export
+extractQTLsFromList <- function(min_pvalue_list, fdr_cutoff = 0.1){
+  min_hits = purrr::map(min_pvalue_list, ~dplyr::filter(.,p_fdr < fdr_cutoff))
+  qtl_df = purrr::map_df(min_hits, identity, .id = "condition_name") %>% 
+    dplyr::group_by(gene_id) %>% 
+    dplyr::arrange(p_nominal) %>%
+    dplyr::ungroup()
+  return(qtl_df)
 }

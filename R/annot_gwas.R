@@ -121,7 +121,25 @@ importGwasPvalue <- function(path, gwas_catalog){
   return(gwas_pvalues)
 }
 
+#' Find GWAS variants that are in high LD with QTL variants
+#'
+#' @param gene_snp_pairs QTL SNP and variant pairs (required columns: gene_id, snp_id)
+#' @param gwas_catalog GWAS catalog data_frame from the importGwasCatalog function 
+#' (required columns: snp_id, chr, pos)
+#' @param vcf_file Genotype data
+#' @param max_distance maximal distance between the qtl variant and the GWAS variant
+#' @param min_r2 Minimal R2 betweeb the QTL vairant and the GWAS variant
+#'
+#' @return data frame with GWAS and QTL overlaps
+#' @export
 findGWASOverlaps <- function(gene_snp_pairs, gwas_catalog, vcf_file, max_distance = 1e6, min_r2 = 0.6){
+  
+  #Add assertions for required columns
+  assertthat::assert_that(assertthat::has_name(gene_snp_pairs, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(gene_snp_pairs, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(gwas_catalog, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(gwas_catalog, "chr"))
+  assertthat::assert_that(assertthat::has_name(gwas_catalog, "pos"))
   
   #Extraxt GWAS SNPs from the catalog
   gwas_snps = dplyr::transmute(gwas_catalog, gwas_snp_id = snp_id, chr, gwas_snp_pos = pos) %>% unique()
