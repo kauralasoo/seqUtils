@@ -188,4 +188,15 @@ rankTraitsByOverlapSize <- function(gwas_hits, filtered_catalog, min_overlap = 3
     arrange(-fraction)
 }
 
+addVariantCoords <- function(gwas_olaps, snpspos){
+  snp_coords = dplyr::filter(snpspos, snpid %in% unique(gwas_olaps$snp_id)) %>%
+    dplyr::rename(snp_id = snpid)
+  result = dplyr::left_join(gwas_olaps, snp_coords, by = "snp_id")
+  return(result)
+}
 
+constructGWASRanges <- function(gwas_olaps, cis_dist){
+  gwas_olaps %>% 
+    dplyr::mutate(seqnames = chr, start = pos - cis_dist, end = pos + cis_dist, strand = "+", snp_id) %>% 
+    dataFrameToGRanges()
+}
