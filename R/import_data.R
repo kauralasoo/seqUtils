@@ -33,6 +33,31 @@ loadCounts <- function(sample_dir, sample_names, counts_suffix = ".counts.txt", 
   return(matrix)
 }
 
+loadExonCounts <- function(sample_dir, sample_names, counts_suffix = ".exon_counts.txt", sub_dir = TRUE){
+  #Load featureCounts output into R
+  matrix = c()
+  for (i in c(1:length(sample_names))){
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], counts_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], counts_suffix, sep = ""))      
+    }
+    print(sample_names[i])
+    table = readr::read_tsv(path, skip = 1, col_types = "cccccii")
+    print(head(table))
+    if (i == 1){
+      matrix = table[,c(1,3,4,6,7)]
+    }
+    else{
+      matrix = cbind(matrix, table[,7])
+    }
+  }
+  colnames(matrix) = c("gene_id", "start", "end", "length", sample_names)
+  matrix = dplyr::tbl_df(matrix)
+  return(matrix)
+}
+
+
 loadIntronEventCounts <- function(sample_dir, sample_names, counts_suffix = ".intron_events.txt", sub_dir = TRUE){
   #Load featureCounts output into R
   matrix = c()
