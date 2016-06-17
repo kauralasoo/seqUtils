@@ -108,3 +108,28 @@ fastQTLCorrectEigenMT <- function(fastqtl_results, n_tests){
     dplyr::mutate(p_eigen_fdr = p.adjust(p_eigen, method = "fdr"))
   return(res)
 }
+
+
+#' Fetch particular genes from tabix indexed FastQTL output file.
+#'
+#' @param gene_ranges GRanges object with coordinates of the cis regions around genes.
+#' @param tabix_file Tabix-indexed fastqtl output file.
+#'
+#' @return List of data frames containing Rasqual results for each gene.
+#' @export
+fastqtlTabixFetchGenes <- function(gene_ranges, tabix_file){
+  #Set column names for rasqual
+  fastqtl_columns = c("gene_id","chr","pos","snp_id","distance","p_nominal","beta")
+  
+  result = list()
+  for (i in seq_along(gene_ranges)){
+    selected_gene_id = gene_ranges[i]$gene_id
+    print(i)
+    tabix_table = scanTabixDataFrame(tabix_file, gene_ranges[i], col_names = fastqtl_columns)[[1]] %>%
+      dplyr::filter(gene_id == selected_gene_id)
+    
+    #Add additional columns
+    result[[selected_gene_id]] = tabix_table
+  }
+  return(result)
+}
