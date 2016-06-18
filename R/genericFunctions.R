@@ -65,3 +65,9 @@ matrixExtractPairs <- function(row_name, col_name, matrix){
 conditionPalette <- function(){
   c("#67a9cf","#2166ac","#ef8a62","#b2182b")
 }
+
+friendlyNames <- function(){
+  friendly_names = data.frame(condition_name = c("naive","IFNg","SL1344", "IFNg_SL1344"), 
+                              friendly_name = c("Naive","IFNg","Salmonella","Both")) %>%
+    dplyr::mutate(friendly_name = factor(friendly_name, levels = friendly_name))
+}
