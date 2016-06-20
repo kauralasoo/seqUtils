@@ -164,7 +164,7 @@ findGWASOverlaps <- function(gene_snp_pairs, gwas_catalog, vcf_file, max_distanc
     dplyr::mutate(R2 = matrixExtractPairs(snp_id, gwas_snp_id, r2_matrix)) %>%
     dplyr::filter(R2 > min_r2) %>%
     dplyr::ungroup() %>%
-    dplyr::left_join(filtered_catalog, by = c("gwas_snp_id" = "snp_id")) %>%
+    dplyr::left_join(gwas_catalog, by = c("gwas_snp_id" = "snp_id")) %>%
     dplyr::select(-chr.y, -pos.y) %>%
     dplyr::rename(chr = chr.x, pos = pos.x)
   
