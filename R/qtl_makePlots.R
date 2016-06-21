@@ -132,3 +132,61 @@ savePlotList <- function(plot_list, output_folder, suffix = ".pdf", ...){
     ggsave(path, plot_list[[name]], ...)
   }
 }
+
+
+#' Construct metadata data frame for wiggleplotr 
+#'
+#' @param count_matrix Feature count matrix used to for calculating library size
+#' @param sample_metadata Sample metadata matrix (required columns: sample_id, genotype_id, condition_name)
+#' @param bigWig_dir Path to the directory with bigWig files
+#' @param condition_name_levels Levels of the condition name factor
+#'
+#' @return Wiggleplotr metadata data frame
+#' @export
+wiggleplotrConstructMetadata <- function(count_matrix, sample_metadata, bigWig_dir, 
+                                         condition_name_levels = c("naive","IFNg", "SL1344", "IFNg_SL1344") ){
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "sample_id"))
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "genotype_id"))
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "condition_name"))
+  
+  
+  #Calculate library sizes
+  library_sizes = data_frame(sample_id = colnames(count_matrix), scaling_factor = colSums(count_matrix)/1e6)
+  
+  #Make a df with metadata
+  plotting_meta = sample_metadata %>%
+    dplyr::select(sample_id, genotype_id, condition_name) %>%
+    dplyr::mutate(bigWig = file.path(bigWig_dir, paste(sample_id, ".bw", sep = ""))) %>%
+    dplyr::mutate(track_id = factor(condition_name, levels = condition_name_levels)) %>%
+    dplyr::left_join(library_sizes, by = "sample_id")
+  return(plotting_meta)
+}
+
+wiggleplotrGenotypeColourGroup <- function(metadata, variant_id, genotype_matrix, beta_sign){
+  
+  #Set the correct sign for the colour group levels
+  if(beta_sign >= 0){
+    colour_group_levels = c(2,1,0)
+  } else{
+    colour_group_levels = c(0,1,2)
+  }
+  
+  #Extract genotypes from the genotype matrix
+  genotype_df = vcf_file$genotypes[variant_id,] %>% 
+    tidyVector(sample_id = "genotype_id", value_id = "colour_group") %>%
+    dplyr::mutate(colour_group = factor(colour_group, levels = colour_group_levels))
+  
+  #Add colour group to the metadata df
+  new_meta = dplyr::left_join(metadata, genotype_df, by = "genotype_id")
+  return(new_meta)
+}
+
+wiggpleplotrConstructPeakAnnotations <- function(selected_peaks){
+  peak_list = list(ATAC = dplyr::transmute(selected_peaks, seqnames = chr, start, end, strand) %>% dataFrameToGRanges())
+  peak_annot = data_frame(transcript_id = "ATAC", gene_id = "ATAC", gene_name = "ATAC-seq", strand = "+")
+  
+  return(list(peak_list = peak_list, peak_annot = peak_annot))
+}
+
+
+
