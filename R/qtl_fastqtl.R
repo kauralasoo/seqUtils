@@ -133,3 +133,18 @@ fastqtlTabixFetchGenes <- function(gene_ranges, tabix_file){
   }
   return(result)
 }
+
+fastqtlTabixFetchGenesQuick <- function(gene_ids, tabix_file, gene_metadata, cis_window = 5e5){
+  gene_df = dplyr::data_frame(gene_id = gene_ids)
+  
+  #If gene_metadata is already a GRanges object then just filter it based on gene_ids
+  if(class(gene_metadata) == "GRanges"){
+    gene_ranges = gene_metadata[gene_metadata$gene_id %in% gene_ids]
+  } else { #Otherwise construct a gene ranges object
+    gene_ranges = rasqualTools::constructGeneRanges(gene_df, gene_metadata, cis_window = cis_window)
+  }
+  tabix_data = fastqtlTabixFetchGenes(gene_ranges, tabix_file)
+  return(tabix_data)
+}
+  
+  
