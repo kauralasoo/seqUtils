@@ -315,9 +315,20 @@ scanTabixDataFrame <- function(tabix_file, param, ...){
 #' Import variant information extracted from VCF file into R
 importVariantInformation <- function(path){
   info_col_names = c("chr","pos","snp_id","ref","alt","type","AC","AN")
-  into_col_types = "cdccccii"
+  into_col_types = "ciccccii"
   snp_info = readr::read_delim(path, delim = "\t", col_types = into_col_types, col_names = info_col_names)
   snp_info = dplyr::mutate(snp_info, indel_length = pmax(nchar(alt), nchar(ref))) %>%
-    dplyr::mutate(is_indel = ifelse(indel_length > 1, TRUE, FALSE))
+    dplyr::mutate(is_indel = ifelse(indel_length > 1, TRUE, FALSE)) %>%
+    dplyr::mutate(MAF = pmin(AC/AN, 1-(AC/AN)))
   return(snp_info)
 }
+
+importGWASSummaryStats <- function(region, path){
+  gwas_colnames = c("chr","pos","pos2","snp_id","A1","A2", "INFO","OR","SE","p_nominal")
+  gwas_coltypes = "ciicccdddd"
+  gwas_pvalues = scanTabixDataFrame("databases/GWAS/IGAP_summary_statistics/IGAP_stage_1.GRCh38.sorted.bed.gz", region, 
+                                   col_names = gwas_colnames, col_types = gwas_coltypes)
+  gwas_pvalues = purrr::map(gwas_pvalues, ~dplyr::select(.,-pos2))
+  return(gwas_pvalues)
+}
+

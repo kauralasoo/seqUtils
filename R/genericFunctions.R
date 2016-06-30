@@ -71,3 +71,10 @@ friendlyNames <- function(){
                               friendly_name = c("Naive","IFNg","Salmonella","Both")) %>%
     dplyr::mutate(friendly_name = factor(friendly_name, levels = friendly_name))
 }
+
+addMafFromVariantInfo <- function(variants_df, variant_info){
+  filtered_variants = dplyr::filter(variant_info, snp_id %in% variants_df$snp_id) %>% 
+    dplyr::select(snp_id, MAF)
+  result = dplyr::left_join(variants_df, filtered_variants, by = "snp_id")
+  return(result)
+}
