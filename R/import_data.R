@@ -311,3 +311,13 @@ scanTabixDataFrame <- function(tabix_file, param, ...){
   }, ...)
   return(df_list)
 }
+
+#' Import variant information extracted from VCF file into R
+importVariantInformation <- function(path){
+  info_col_names = c("chr","pos","snp_id","ref","alt","type","AC","AN")
+  into_col_types = "cdccccii"
+  snp_info = readr::read_delim(path, delim = "\t", col_types = into_col_types, col_names = info_col_names)
+  snp_info = dplyr::mutate(snp_info, indel_length = pmax(nchar(alt), nchar(ref))) %>%
+    dplyr::mutate(is_indel = ifelse(indel_length > 1, TRUE, FALSE))
+  return(snp_info)
+}
