@@ -14,7 +14,26 @@
 #' @author Kaur Alasoo
 #' @export 
 plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_matrix, sample_metadata, 
-                     gene_metadata, return_df = FALSE){
+                     gene_metadata){
+  
+  #Construct plot data frame
+  plot_df = constructQtlPlotDataFrame(selected_gene_id, genotype_id, expression_matrix, genotype_matrix, sample_metadata, 
+                                      gene_metadata)
+  
+  #Make plot and return ggplot2 object
+  plot = ggplot2::ggplot(plot_df, ggplot2::aes(x = genotype_value, y = norm_exp)) + 
+    ggplot2::facet_wrap(~ condition_name) + 
+    ggplot2::geom_boxplot(outlier.shape = NA) + 
+    ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .1)) + 
+    ggplot2::ylab("Normalized expression") +
+    ggplot2::xlab(genotype_id) + 
+    ggplot2::labs(title = plot_df$gene_name[[1]])
+    
+  return(plot)
+}
+
+constructQtlPlotDataFrame <- function(selected_gene_id, genotype_id, expression_matrix, genotype_matrix, sample_metadata, 
+                                      gene_metadata){
   
   #Extraxt gene_name
   gene_name = dplyr::filter(gene_metadata, gene_id == selected_gene_id)$gene_name
@@ -34,20 +53,7 @@ plotEQTL <- function(selected_gene_id, genotype_id, expression_matrix, genotype_
     dplyr::left_join(genotype_df, by = "genotype_id") %>%
     dplyr::mutate(snp_id = g_id, gene_name = gene_name)
   
-  #Either return raw data frame or make plot and return ggplot2 object
-  if (return_df){
-    return(plot_df)
-  } else{
-    plot = ggplot2::ggplot(plot_df, ggplot2::aes(x = genotype_value, y = norm_exp)) + 
-      ggplot2::facet_wrap(~ condition_name) + 
-      ggplot2::geom_boxplot(outlier.shape = NA) + 
-      ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .1)) + 
-      ggplot2::ylab("Normalized expression") +
-      ggplot2::xlab(genotype_id) + 
-      ggplot2::labs(title = gene_name)
-    
-    return(plot)
-  }
+  return(plot_df)
 }
 
 plotQtlRow <- function(qtl_df){
