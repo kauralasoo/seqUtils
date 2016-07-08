@@ -332,3 +332,10 @@ importGWASSummaryStats <- function(region, path){
   return(gwas_pvalues)
 }
 
+importMotifDisruptions <- function(path){
+  motif_colnames = c("gene_id","snp_id","snp_count",".row","start","strand","motif_id","ref_abs_score","ref_rel_score",
+                     "ref_match","alt_abs_score","alt_rel_score","alt_match","rel_diff","max_rel_score")
+  motif_disruptions = readr::read_delim(path, delim = "\t", col_names = motif_colnames)
+  return(motif_disruptions)
+}
+
