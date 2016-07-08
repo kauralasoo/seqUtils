@@ -149,6 +149,21 @@ addR2FromLead <- function(gene_df, genotypes){
   return(gene_df)
 }
 
+calculateR2FromLead <- function(snp_ids, genotypes){
+  
+  #Extract genotype matrix
+  genotype_matrix = t(genotypes[snp_ids,])
+  
+  #If more than one SNP then calculate R2
+  if( length(snp_ids) > 1 ){ 
+    #Calculate R2 between the first SNP in the genotype matrix and all other SNPs
+    r2 = apply(genotype_matrix, 2, function(x, y){ cor(x,y,use = "pairwise.complete.obs") }, genotype_matrix[,1])^2
+  } else { #If only one SNP then set R2 to 1
+    r2 = 1
+  }
+  return(r2)
+}
+
 #' Add expected p-value for Q-Q plots
 #'
 #' @param pvalue_df 
