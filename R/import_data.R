@@ -326,8 +326,7 @@ importVariantInformation <- function(path){
 importGWASSummaryStats <- function(region, path){
   gwas_colnames = c("chr","pos","pos2","snp_id","A1","A2", "INFO","OR","SE","p_nominal")
   gwas_coltypes = "ciicccdddd"
-  gwas_pvalues = scanTabixDataFrame("databases/GWAS/IGAP_summary_statistics/IGAP_stage_1.GRCh38.sorted.bed.gz", region, 
-                                   col_names = gwas_colnames, col_types = gwas_coltypes)
+  gwas_pvalues = scanTabixDataFrame(path, region, col_names = gwas_colnames, col_types = gwas_coltypes)
   gwas_pvalues = purrr::map(gwas_pvalues, ~dplyr::select(.,-pos2))
   return(gwas_pvalues)
 }
