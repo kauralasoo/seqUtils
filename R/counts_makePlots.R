@@ -16,3 +16,14 @@ plotGene <- function(gene_id, matrix, design, gene_metadata, colors = c("#d95f02
     theme(legend.position="none", text = element_text(size=20), axis.text.x = element_text(angle = 20), axis.title.x = element_blank())
   return(plot)
 }
+
+extractGeneData <- function(gene_id, expression_matrix, sample_metadata, gene_metadata){
+  
+  #Extract gene expression data from matrix and add to the sample metadata matrix
+  expression_matrix = expression_matrix[,match(sample_metadata$sample_id, colnames(expression_matrix))]
+  gene_expression = expression_matrix[gene_id,]
+  name = as.vector(gene_metadata[gene_metadata$gene_id == gene_id,]$gene_name)
+  result = dplyr::mutate(sample_metadata, expression = as.numeric(gene_expression),
+                gene_name = name)
+  return(result)
+}
