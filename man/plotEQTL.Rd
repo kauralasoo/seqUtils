@@ -5,7 +5,7 @@
 \title{Make a boxplot of expression QTL in multiple conditions.}
 \usage{
 plotEQTL(selected_gene_id, genotype_id, expression_matrix, genotype_matrix,
-  sample_metadata, gene_metadata, return_df = FALSE)
+  sample_metadata, gene_metadata)
 }
 \arguments{
 \item{selected_gene_id}{ID if the gene of interest.}

@@ -78,3 +78,26 @@ addMafFromVariantInfo <- function(variants_df, variant_info){
   result = dplyr::left_join(variants_df, filtered_variants, by = "snp_id")
   return(result)
 }
+
+#' Force a vector of values into standard normal distribution
+#'
+#' @param x numeric vector with arbitrary distribution
+#'
+#' @return Vector with a standard normal distribution
+#' @export
+quantileNormaliseVector = function(x){
+  qnorm(rank(x,ties.method = "average")/(length(x)+1))
+}
+
+
+quantileNormaliseMatrix <- function(matrix){
+  quantile_matrix = matrix(0, nrow(intron_prop_std), ncol(intron_prop_std))
+  for (i in seq_along(matrix[1,])){
+    quantile_matrix[,i] = quantileNormaliseVector(matrix[,i])
+  }
+  #Add names
+  rownames(quantile_matrix) = rownames(matrix)
+  colnames(quantile_matrix) = colnames(matrix)
+  return(quantile_matrix)
+}
+
