@@ -104,7 +104,8 @@ filterInteractionResults <- function(conditions, interaction_result, pvalue_list
 #'
 #' @return Either a pvalue (if return_value == "ponly") or the full linear model object.
 #' @export
-testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
+testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula,
+                            interaction_formula, return_value = "ponly"){
   
   #Some basic assertions
   assertthat::assert_that(is.matrix(trait_matrix))
@@ -133,7 +134,8 @@ testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_
 }
 
 #Run testInteraction on a data.frame of gene-SNP pairs
-testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value = "ponly"){
+testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf_file, qtl_formula, 
+                                     interaction_formula, return_value = "ponly", id_field_separator = ";"){
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
   for(i in 1:nrow(snps_df)){
@@ -141,15 +143,15 @@ testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf
     snp_id = snps_df[i,]$snp_id
     print(gene_id)
     test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
-    result[[paste(gene_id,snp_id, sep = ":")]] = test
+    result[[paste(gene_id,snp_id, sep = id_field_separator)]] = test
   }
   return(result)
 }
 
 #Post-process results from testMultipleInteractions
-postProcessInteractionPvalues <- function(pvalue_list){
+postProcessInteractionPvalues <- function(pvalue_list, id_field_separator = ";"){
   res = plyr::ldply(pvalue_list, .id = "id") %>% 
-    tidyr::separate(id, into = c("gene_id", "snp_id"), sep = ":") %>%
+    tidyr::separate(id, into = c("gene_id", "snp_id"), sep = id_field_separator) %>%
     dplyr::rename(p_nominal = V2) %>% tbl_df() %>%
     dplyr::select(gene_id, snp_id, p_nominal) %>%
     dplyr::mutate(p_fdr = p.adjust(p_nominal,"fdr")) %>%
