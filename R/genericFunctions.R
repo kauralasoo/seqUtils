@@ -86,12 +86,12 @@ addMafFromVariantInfo <- function(variants_df, variant_info){
 #' @return Vector with a standard normal distribution
 #' @export
 quantileNormaliseVector = function(x){
-  qnorm(rank(x,ties.method = "average")/(length(x)+1))
+  qnorm(rank(x,ties.method = "random")/(length(x)+1))
 }
 
 
 quantileNormaliseMatrix <- function(matrix){
-  quantile_matrix = matrix(0, nrow(intron_prop_std), ncol(intron_prop_std))
+  quantile_matrix = matrix(0, nrow(matrix), ncol(matrix))
   for (i in seq_along(matrix[1,])){
     quantile_matrix[,i] = quantileNormaliseVector(matrix[,i])
   }
