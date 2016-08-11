@@ -1,6 +1,6 @@
+#' Calculate the proportion of variance explaned by different factors in a lme4 model
 varianceExplained <- function(lmer_model){
-  #Calculate the percentage of variance explained by different factors
-  variance = as.data.frame(VarCorr(lmer_model))
+  variance = as.data.frame(lme4::VarCorr(lmer_model))
   var_percent = dplyr::mutate(variance, percent_variance = vcov/sum(vcov)) %>% 
     dplyr::select(grp, percent_variance) %>% 
     dplyr::mutate(type = "gene")
