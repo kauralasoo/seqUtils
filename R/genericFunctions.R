@@ -101,3 +101,13 @@ quantileNormaliseMatrix <- function(matrix){
   return(quantile_matrix)
 }
 
+#' Convert a data frame with an id column into a matrix with row names
+tibbleToNamedMatrix <- function(tibble, row_names = "transcript_id"){
+  assertthat::assert_that(assertthat::has_name(tibble, row_names))
+  
+  rows = as.vector(unlist(tibble[,row_names]))
+  selected_columns = which(!colnames(tibble) == row_names)
+  matrix = dplyr::select(tibble, selected_columns) %>% as.matrix()
+  rownames(matrix) = rows
+  return(matrix)
+}
