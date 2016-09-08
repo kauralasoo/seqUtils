@@ -350,7 +350,8 @@ loadSalmonCounts <- function(sample_dir, sample_names, counts_suffix = ".ensembl
       path = file.path(sample_dir, paste0(sample_names[i], counts_suffix))      
     }
     print(sample_names[i])
-    table = read_delim(path, delim = "\t", col_names = TRUE, col_types = "cdddd")
+    columns = c("Name","Length","EffectiveLength","TPM","NumReads")
+    table = readr::read_delim(path, delim = "\t", col_names = columns, col_types = "cdddd")
     #Calculate relative length
     if(column_name == "RelativeLength"){
       table = dplyr::mutate(table, RelativeLength = EffectiveLength/Length)
@@ -366,10 +367,10 @@ loadSalmonCounts <- function(sample_dir, sample_names, counts_suffix = ".ensembl
   return(matrix)
 }
 
-salmonSummarizedExperiment <- function(sample_metadata, transcript_metadata, sample_dir, sub_dir = FALSE){
+salmonSummarizedExperiment <- function(sample_metadata, transcript_metadata, sample_dir, counts_suffix, sub_dir = FALSE){
   
   #Load salmon lengths and merge with transcript metadata
-  salmon_lengths = loadSalmonCounts(sample_dir, sample_metadata$sample_id[1], sub_dir, column_name = "Length")
+  salmon_lengths = loadSalmonCounts(sample_dir, sample_metadata$sample_id[1], counts_suffix, sub_dir, column_name = "Length")
   colnames(salmon_lengths)[2] = "salmon_length"
   transcript_meta = dplyr::left_join(salmon_lengths, transcript_metadata, by = "transcript_id") %>%
     dplyr::select(transcript_id, gene_id, gene_name, everything()) %>%
@@ -377,15 +378,15 @@ salmonSummarizedExperiment <- function(sample_metadata, transcript_metadata, sam
   rownames(transcript_meta) = transcript_meta$transcript_id
   
   #Import assays
-  tpms = loadSalmonCounts(sample_dir, sample_metadata$sample_id, sub_dir, column_name = "TPM") %>%
+  tpms = loadSalmonCounts(sample_dir, sample_metadata$sample_id, counts_suffix, sub_dir, column_name = "TPM") %>%
     tibbleToNamedMatrix()
-  counts = loadSalmonCounts(sample_dir, sample_metadata$sample_id, sub_dir, column_name = "NumReads") %>%
+  counts = loadSalmonCounts(sample_dir, sample_metadata$sample_id, counts_suffix, sub_dir, column_name = "NumReads") %>%
     tibbleToNamedMatrix()
-  relLengths = loadSalmonCounts(sample_dir, sample_metadata$sample_id, sub_dir, column_name = "RelativeLength") %>%
+  relLengths = loadSalmonCounts(sample_dir, sample_metadata$sample_id, counts_suffix, sub_dir, column_name = "RelativeLength") %>%
     tibbleToNamedMatrix()
   
   #Construct SummarizedExperiemnt
-  se = SummarizedExperiment(assays = list(counts = counts, tpms = tpms, relLengths = relLengths), 
+  se = SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts, tpms = tpms, relLengths = relLengths), 
                             colData = sample_metadata, 
                             rowData = transcript_meta)
   

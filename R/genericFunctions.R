@@ -57,6 +57,25 @@ splitIntoBatches <- function(n, batch_size){
   return(batch_ids)
 }
 
+#Split ids into batches
+constructIdBatches <- function(batch_string, id_vector){
+  
+  #Extract batch number in n_batches from batch_string
+  b_vector = as.numeric(unlist(strsplit(batch_string, " ")))
+  batch_id = b_vector[1]
+  n_batches = b_vector[2]
+  
+  #Construct batches
+  batch_size = ceiling(length(id_vector)/n_batches)
+  batches = splitIntoBatches(length(id_vector), batch_size)
+  
+  #Extrat ids belonging to batch
+  selection = batches == batch_id
+  selected_ids = id_vector[selection]
+  
+  return(selected_ids)
+}
+
 matrixExtractPairs <- function(row_name, col_name, matrix){
   return(matrix[row_name, col_name])
 }
