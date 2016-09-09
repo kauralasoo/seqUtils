@@ -125,3 +125,13 @@ tidyTopTable <- function(result){
     dplyr::select(gene_id, everything())
   return(result)
 }
+
+replaceNAsWithRowMeans <- function(matrix){
+  #replace with row means
+  na_pos = which(is.na(matrix), arr.ind = TRUE)
+  matrix[na_pos] = rowMeans(matrix, na.rm=TRUE)[na_pos[,1]]
+  
+  #If there are addional NAs left (whole row NAs) then replace with 0
+  matrix[is.na(matrix)] = 0
+  return(matrix)
+}
