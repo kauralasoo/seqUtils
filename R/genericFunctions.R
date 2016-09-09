@@ -130,3 +130,8 @@ tibbleToNamedMatrix <- function(tibble, row_names = "transcript_id"){
   rownames(matrix) = rows
   return(matrix)
 }
+
+#' Convert bioconductor DataFrame object into tibble
+tbl_df2 <- function(dataframe){
+  return(tibble::as_tibble(BiocGenerics::as.data.frame(dataframe)))
+}

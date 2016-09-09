@@ -96,3 +96,17 @@ constructGeneData <- function(gene_id, expression_matrix, sample_metadata){
   model_data = dplyr::left_join(gene_df, sample_metadata, by = "sample_id") 
   return(model_data)
 }
+
+
+#' Extract samples from SummarizedExperiment based on condition_name column in metadata.
+#'
+#' @param cond_name Name of the condition, has to match at least one entry in the 
+#' condition_name columns of the colData data frame.
+#' @param expression_list Expression list to be filtered.
+#'
+#' @return Filtered SummarizedExperiment
+#' @export
+extractConditionFromSummarizedExperiment <- function(cond_name, summarizedExperiment){
+  result = summarizedExperiment[,summarizedExperiment$condition_name == cond_name]
+  return(result)
+}
