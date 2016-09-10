@@ -385,8 +385,32 @@ salmonSummarizedExperiment <- function(sample_metadata, transcript_metadata, sam
   relLengths = loadSalmonCounts(sample_dir, sample_metadata$sample_id, counts_suffix, sub_dir, column_name = "RelativeLength") %>%
     tibbleToNamedMatrix()
   
+  #Calculate TPM ratios
+  #Set up the TPM data frame for computatiob
+  gene_transcript_map = dplyr::select(transcript_metadata, transcript_id, gene_id)
+  tpm_df = dplyr::mutate(as.data.frame(tpms), transcript_id = rownames(tpms)) %>%
+    tbl_df() %>%
+    dplyr::left_join(gene_transcript_map, by = "transcript_id") %>%
+    dplyr::select(-transcript_id) %>%
+    dplyr::select(gene_id, everything())
+  
+  #Calculate total expression per gene
+  gene_total_tpms = purrr::slice_rows(tpm_df, "gene_id") %>% 
+    purrr::by_slice(~colSums(.) %>% 
+                      t() %>% 
+                      as.data.frame(), .collate = "rows")
+  
+  #Make matrix of gene expression values for each transcript
+  tx_gene_expression = dplyr::left_join(gene_transcript_map, gene_total_tpms, by = "gene_id")
+  tx_gene_matrix = dplyr::select(tx_gene_expression, -gene_id, -transcript_id) %>% as.matrix()
+  rownames(tx_gene_matrix) = tx_gene_expression$transcript_id
+  
+  #calculate TPM ratios and add them to the SummarizedExperiment
+  tpm_ratios = tpms/tx_gene_matrix[rownames(tpms),]
+  
   #Construct SummarizedExperiemnt
-  se = SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts, tpms = tpms, relLengths = relLengths), 
+  se = SummarizedExperiment::SummarizedExperiment(assays =
+                            list(counts = counts, tpms = tpms, relLengths = relLengths, tpm_ratios = tpm_ratios), 
                             colData = sample_metadata, 
                             rowData = transcript_meta)
   
