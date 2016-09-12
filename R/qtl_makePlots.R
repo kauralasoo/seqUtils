@@ -149,7 +149,7 @@ savePlotList <- function(plot_list, output_folder, suffix = ".pdf", ...){
 #'
 #' @return Wiggleplotr metadata data frame
 #' @export
-wiggleplotrConstructMetadata <- function(count_matrix, sample_metadata, bigWig_dir, 
+wiggleplotrConstructMetadata <- function(count_matrix, sample_metadata, bigWig_dir, bigWig_suffix = ".bw", 
                                          condition_name_levels = c("naive","IFNg", "SL1344", "IFNg_SL1344") ){
   assertthat::assert_that(assertthat::has_name(sample_metadata, "sample_id"))
   assertthat::assert_that(assertthat::has_name(sample_metadata, "genotype_id"))
@@ -162,7 +162,7 @@ wiggleplotrConstructMetadata <- function(count_matrix, sample_metadata, bigWig_d
   #Make a df with metadata
   plotting_meta = sample_metadata %>%
     dplyr::select(sample_id, genotype_id, condition_name) %>%
-    dplyr::mutate(bigWig = file.path(bigWig_dir, paste(sample_id, ".bw", sep = ""))) %>%
+    dplyr::mutate(bigWig = file.path(bigWig_dir, paste(sample_id, bigWig_suffix, sep = ""))) %>%
     dplyr::mutate(track_id = factor(condition_name, levels = condition_name_levels)) %>%
     dplyr::left_join(library_sizes, by = "sample_id")
   return(plotting_meta)
