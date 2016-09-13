@@ -113,22 +113,3 @@ tibbleToNamedMatrix <- function(tibble, row_names = "transcript_id"){
 tbl_df2 <- function(dataframe){
   return(tibble::as_tibble(BiocGenerics::as.data.frame(dataframe)))
 }
-
-tidyDESeq <- function(result, gene_metadata){
-  result_table = result %>% 
-    as.data.frame() %>% 
-    dplyr::mutate(gene_id = rownames(result)) %>% 
-    tbl_df() %>% 
-    dplyr::left_join(gene_metadata, by = "gene_id") %>% 
-    dplyr::arrange(padj) %>%
-    dplyr::select(gene_id, gene_name, everything())
-  return(result_table)
-}
-
-tidyTopTable <- function(result){
-  names = rownames(result)
-  result = result %>% dplyr::tbl_df() %>%
-    dplyr::mutate(gene_id = names) %>%
-    dplyr::select(gene_id, everything())
-  return(result)
-}
