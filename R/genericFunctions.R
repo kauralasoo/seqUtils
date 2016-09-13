@@ -98,28 +98,6 @@ addMafFromVariantInfo <- function(variants_df, variant_info){
   return(result)
 }
 
-#' Force a vector of values into standard normal distribution
-#'
-#' @param x numeric vector with arbitrary distribution
-#'
-#' @return Vector with a standard normal distribution
-#' @export
-quantileNormaliseVector = function(x){
-  qnorm(rank(x,ties.method = "random")/(length(x)+1))
-}
-
-
-quantileNormaliseMatrix <- function(matrix){
-  quantile_matrix = matrix(0, nrow(matrix), ncol(matrix))
-  for (i in seq_along(matrix[1,])){
-    quantile_matrix[,i] = quantileNormaliseVector(matrix[,i])
-  }
-  #Add names
-  rownames(quantile_matrix) = rownames(matrix)
-  colnames(quantile_matrix) = colnames(matrix)
-  return(quantile_matrix)
-}
-
 #' Convert a data frame with an id column into a matrix with row names
 tibbleToNamedMatrix <- function(tibble, row_names = "transcript_id"){
   assertthat::assert_that(assertthat::has_name(tibble, row_names))
@@ -134,4 +112,23 @@ tibbleToNamedMatrix <- function(tibble, row_names = "transcript_id"){
 #' Convert bioconductor DataFrame object into tibble
 tbl_df2 <- function(dataframe){
   return(tibble::as_tibble(BiocGenerics::as.data.frame(dataframe)))
+}
+
+tidyDESeq <- function(result, gene_metadata){
+  result_table = result %>% 
+    as.data.frame() %>% 
+    dplyr::mutate(gene_id = rownames(result)) %>% 
+    tbl_df() %>% 
+    dplyr::left_join(gene_metadata, by = "gene_id") %>% 
+    dplyr::arrange(padj) %>%
+    dplyr::select(gene_id, gene_name, everything())
+  return(result_table)
+}
+
+tidyTopTable <- function(result){
+  names = rownames(result)
+  result = result %>% dplyr::tbl_df() %>%
+    dplyr::mutate(gene_id = names) %>%
+    dplyr::select(gene_id, everything())
+  return(result)
 }

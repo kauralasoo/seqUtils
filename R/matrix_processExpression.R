@@ -11,54 +11,6 @@ regressPrinicpalComponents <- function(data_matrix, n_pcs){
   return(result)
 }
 
-calculateMean <- function(matrix, design, factor, sample_id_col = "sample_id"){
-  #Calculate the mean value in matrix over all possible factor values.
-  
-  #If the factor is not a factor then make it a factor.
-  if(!is.factor(design[,factor])){
-    design[,factor] = factor(design[,factor])
-  }
-  
-  #Set sample_id column as rownames
-  rownames(design) = design[,sample_id_col]
-  factor = design[,factor]
-  levs = levels(factor)
-  result = c()
-  for (lev in levs){
-    filter = factor == lev
-    samples = rownames(design[filter,])
-    mat = matrix[,samples]
-    mat = rowMeans(mat)
-    result = cbind(result, mat)
-  }
-  colnames(result) = levs
-  return(data.frame(result))
-}
-
-zScoreNormalize <- function(matrix){
-  #Normalize expression matrix by z-score
-  matrix = matrix - rowMeans(matrix)
-  matrix = matrix / apply(matrix, 1, sd)
-  return(matrix)
-}
-
-performPCA <- function(matrix, design, n_pcs = NULL, feature_id = "sample_id", column_prefix = "", ...){
-  #Perform PCA of gene expression matrix add experimental design metadata to the results
-  pca = prcomp(t(matrix), ...)
-  if(is.null(n_pcs)){
-    n_pcs = ncol(matrix)
-  }
-  pca_mat = as.data.frame(pca$x[,1:n_pcs])
-  colnames(pca_mat) = paste0(column_prefix, colnames(pca_mat))
-  pca_matrix = pca_mat %>% 
-    dplyr::mutate(sample_id = rownames(pca$x)) %>%
-    dplyr::rename_(.dots = setNames("sample_id", feature_id)) %>% #Hack to make renaming work
-    dplyr::left_join(design, by = feature_id)
-  #Calculate variance explained by each component
-  var_exp = (pca$sdev^2) / sum(pca$sdev^2)
-  return(list(pca_matrix = pca_matrix, pca_object = pca, var_exp = var_exp))
-}
-
 filterDESeqResults <- function(results,gene_metadata, min_padj = 0.01, min_fc = 1, biotype_filter = NULL){
   #Add gene name to the DESeq result and filter out up and downregulated genes.
   
@@ -106,33 +58,4 @@ explainPEER <- function(peer_factors, covariates){
   results$r_squared = as.numeric(results$r_squared)
   results$p_value = as.numeric(results$p_value)
   return(results)
-}
-
-tidyDESeq <- function(result, gene_metadata){
-  result_table = result %>% 
-    as.data.frame() %>% 
-    dplyr::mutate(gene_id = rownames(result)) %>% 
-    tbl_df() %>% 
-    dplyr::left_join(gene_metadata, by = "gene_id") %>% 
-    dplyr::arrange(padj) %>%
-    dplyr::select(gene_id, gene_name, everything())
-  return(result_table)
-}
-
-tidyTopTable <- function(result){
-  names = rownames(result)
-  result = result %>% dplyr::tbl_df() %>%
-    dplyr::mutate(gene_id = names) %>%
-    dplyr::select(gene_id, everything())
-  return(result)
-}
-
-replaceNAsWithRowMeans <- function(matrix){
-  #replace with row means
-  na_pos = which(is.na(matrix), arr.ind = TRUE)
-  matrix[na_pos] = rowMeans(matrix, na.rm=TRUE)[na_pos[,1]]
-  
-  #If there are addional NAs left (whole row NAs) then replace with 0
-  matrix[is.na(matrix)] = 0
-  return(matrix)
 }
