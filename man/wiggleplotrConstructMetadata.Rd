@@ -5,7 +5,8 @@
 \title{Construct metadata data frame for wiggleplotr}
 \usage{
 wiggleplotrConstructMetadata(count_matrix, sample_metadata, bigWig_dir,
-  condition_name_levels = c("naive", "IFNg", "SL1344", "IFNg_SL1344"))
+  bigWig_suffix = ".bw", condition_name_levels = c("naive", "IFNg",
+  "SL1344", "IFNg_SL1344"))
 }
 \arguments{
 \item{count_matrix}{Feature count matrix used to for calculating library size}

@@ -56,12 +56,12 @@ constructQtlPlotDataFrame <- function(selected_gene_id, genotype_id, expression_
   return(plot_df)
 }
 
-plotQtlRow <- function(qtl_df){
+plotQtlRow <- function(qtl_df, ylabel = "Normalized expression"){
   plot = ggplot2::ggplot(qtl_df, ggplot2::aes(x = genotype_value, y = norm_exp, color = condition_name)) + 
     ggplot2::facet_grid(~condition_name) + 
     ggplot2::geom_boxplot(outlier.shape = NA) + 
     ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .2), size = 0.5) + 
-    ggplot2::ylab("Normalized expression") +
+    ggplot2::ylab(ylabel) +
     ggplot2::xlab(qtl_df$snp_id[1]) + 
     ggplot2::labs(title = qtl_df$gene_name[1]) + 
     ggplot2::theme_light() + 

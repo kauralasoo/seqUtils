@@ -4,7 +4,8 @@
 \alias{calculatePairwisePi1}
 \title{Calculate all pairwise Pi1 statistics for a list p-value tables.}
 \usage{
-calculatePairwisePi1(qtl_list, qvalue_thresh = 0.1, tidy = FALSE)
+calculatePairwisePi1(qtl_list, qvalue_thresh = 0.1, tidy = FALSE,
+  feature_id = "gene_id")
 }
 \arguments{
 \item{qtl_list}{List of p-value tables}

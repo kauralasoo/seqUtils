@@ -4,7 +4,7 @@
 \alias{calculatePi1}
 \title{Calculate Pi1 replicability statistic between two sets of pvalues}
 \usage{
-calculatePi1(table1, table2, qvalue_thresh = 0.1)
+calculatePi1(table1, table2, qvalue_thresh = 0.1, feature_id = "gene_id")
 }
 \arguments{
 \item{table1}{First table maximum p-values per feature.}
