@@ -192,3 +192,56 @@ extractQTLsFromList <- function(min_pvalue_list, fdr_cutoff = 0.1){
     dplyr::ungroup()
   return(qtl_df)
 }
+
+estimateLeadVariantConcordance <- function(table1, table2, filter_formula, genotype_matrix, feature_id = "gene_id"){
+  #Identify significant hits from first table
+  table1_hits = dplyr::filter_(table1, filter_formula) %>%
+    dplyr::rename(snp_id1 = snp_id) %>%
+    dplyr::select_(feature_id, "snp_id1")
+  #Extract the same genes from the second table
+  table2_hits = dplyr::semi_join(table2, table1_hits, by = feature_id) %>%
+    dplyr::rename(snp_id2 = snp_id) %>%
+    dplyr::select_(feature_id, "snp_id2")
+  #Estimate the proportion of replicated qtls
+  joint_hits = dplyr::left_join(table1_hits, table2_hits, by = feature_id) %>%
+    dplyr::filter(!is.na(snp_id1), !is.na(snp_id2)) #Remove NAs
+
+  #Calculate R2 between lead variants
+  g1 = vcf_file$genotypes[joint_hits$snp_id1,]
+  g2 = vcf_file$genotypes[joint_hits$snp_id2,]
+  r2 = diag(cor(t(g1), t(g2), use = "pairwise.complete.obs"))^2
+  result = dplyr::mutate(joint_hits, R2 = r2)
+  
+  return(result)
+}
+
+calculatePairwiseConcordance <- function(qtl_list, filter_formula, genotype_matrix, 
+                                         tidy = FALSE, feature_id = "gene_id", R2_thresh = 0.8){
+  sample_names = names(qtl_list)
+  rep_matrix = matrix(1,length(sample_names),length(sample_names))
+  colnames(rep_matrix) = sample_names
+  rownames(rep_matrix) = sample_names
+  
+  #Iterate through all pairs of p-values
+  for (sn1 in 1:length(sample_names)){
+    for (sn2 in 1:length(sample_names)){
+      if (sn1 != sn2){
+        concordance = estimateLeadVariantConcordance(qtl_list[[sn1]], qtl_list[[sn2]], 
+                                                              filter_formula, genotype_matrix, feature_id)
+        rep_matrix[sn1, sn2] = length(which(concordance$R2 > R2_thresh))/nrow(concordance)
+      }
+    }
+  }
+  
+  #If tidy then return data frme insted of matrix
+  if(tidy == TRUE){
+    res = as.data.frame(rep_matrix) %>% 
+      dplyr::mutate(first = rownames(rep_matrix)) %>% 
+      dplyr::select(first, everything()) %>% 
+      tidyr::gather("second","pi1",2:(ncol(rep_matrix)+1)) %>% 
+      dplyr::arrange(first, second)
+    return(res)
+  }
+  return(rep_matrix)
+}
+
