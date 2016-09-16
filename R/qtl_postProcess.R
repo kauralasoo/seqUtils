@@ -238,7 +238,7 @@ calculatePairwiseConcordance <- function(qtl_list, filter_formula, genotype_matr
     res = as.data.frame(rep_matrix) %>% 
       dplyr::mutate(first = rownames(rep_matrix)) %>% 
       dplyr::select(first, everything()) %>% 
-      tidyr::gather("second","pi1",2:(ncol(rep_matrix)+1)) %>% 
+      tidyr::gather("second","concordance",2:(ncol(rep_matrix)+1)) %>% 
       dplyr::arrange(first, second)
     return(res)
   }
