@@ -197,3 +197,45 @@ findCredibleSetOverlaps <- function(master_credible_set, dependent_credible_set)
 }
 
 
+
+#' Construct a GRanges obejct corresponding to a cis region around one variant.
+#'
+#' @param variant_df data frame with at least snp_id column
+#' @param variant_information data.frame from importVariantInformation() function
+#' @param cis_dist Number of basepairs upstream and downstream of the variant.
+#'
+#' @return GRanges 
+#' @export
+constructVariantRanges <- function(variant_df, variant_information, cis_dist){
+  
+  #Make key assertions
+  assertthat::assert_that(assertthat::has_name(variant_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(variant_information, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(variant_information, "chr"))
+  assertthat::assert_that(assertthat::has_name(variant_information, "pos"))
+  
+  #Filter variant information to contain only required snps
+  var_info = dplyr::filter(variant_information, snp_id %in% variant_df$snp_id) %>%
+    dplyr::select(snp_id, chr, pos)
+  
+  #Add variant info to variant df
+  var_df = dplyr::left_join(variant_df, var_info, by = "snp_id")
+  
+  #Make a ranges object
+  var_ranges = var_df %>%
+    dplyr::rename(seqnames = chr) %>%
+    dplyr::mutate(start = pos - cis_dist, end = pos + cis_dist, strand = "*") %>%
+    dataFrameToGRanges()
+  
+  return(var_ranges)
+}
+
+tabixFetchGWASSummary <- function(granges, summary_path){
+  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
+                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
+  gwas_pvalues = scanTabixDataFrame(summary_path, granges, col_names = gwas_col_names)
+  return(gwas_pvalues)
+}
+
+
+

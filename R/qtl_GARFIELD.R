@@ -44,3 +44,11 @@ rasqualSummariesToGarfieldByChr <- function(selected_chr, rasqual_min_pvalues, s
   
   return(result)
 }
+
+extractChrFromReducedDf <- function(selected_chr, reduced_df){
+  df = dplyr::filter(reduced_df, chr == selected_chr) %>% 
+    dplyr::arrange(pos) %>% 
+    dplyr::select(-snp_id, -chr)
+  df$pos = paste0(df$pos, " ") #Add space to pos field
+  return(df)
+}
