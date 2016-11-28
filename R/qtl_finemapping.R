@@ -216,7 +216,7 @@ constructVariantRanges <- function(variant_df, variant_information, cis_dist){
   
   #Filter variant information to contain only required snps
   var_info = dplyr::filter(variant_information, snp_id %in% variant_df$snp_id) %>%
-    dplyr::select(snp_id, chr, pos)
+    dplyr::select(snp_id, chr, pos, MAF)
   
   #Add variant info to variant df
   var_df = dplyr::left_join(variant_df, var_info, by = "snp_id")
@@ -233,8 +233,121 @@ constructVariantRanges <- function(variant_df, variant_information, cis_dist){
 tabixFetchGWASSummary <- function(granges, summary_path){
   gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
                      "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
-  gwas_pvalues = scanTabixDataFrame(summary_path, granges, col_names = gwas_col_names)
+  gwas_col_types = c("ccicdddddddccc")
+  gwas_pvalues = scanTabixDataFrame(summary_path, granges, col_names = gwas_col_names, col_types = gwas_col_types)
   return(gwas_pvalues)
+}
+
+summaryReplaceCoordinates <- function(summary_df, variant_information){
+  
+  #Make key assertions
+  assertthat::assert_that(assertthat::has_name(summary_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "pos"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "chr"))
+  
+  #Filter variant information to contain only required snps
+  var_info = dplyr::filter(variant_information, snp_id %in% summary_df$snp_id) %>%
+    dplyr::select(snp_id, chr, pos, MAF)
+  
+  #Remove MAF if it is present
+  if(assertthat::has_name(eqtl, "MAF")){
+    summary_df = dplyr::select(summary_df, -MAF)
+  }
+  
+  #Add new coordinates
+  new_coords = dplyr::select(summary_df, -chr, -pos) %>%
+    dplyr::left_join(var_info, by = "snp_id") %>%
+    dplyr::filter(!is.na(pos)) %>%
+    dplyr::arrange(pos)
+  
+  return(new_coords)
+}
+
+summaryReplaceSnpId <- function(summary_df, variant_information){
+  
+  #Make key assertions
+  assertthat::assert_that(assertthat::has_name(summary_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "pos"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "chr"))
+  
+  #Filter variant information to contain only required snps
+  var_info = dplyr::filter(variant_information, pos %in% summary_df$pos) %>%
+    dplyr::select(snp_id, chr, pos, MAF)
+  
+  #Remove MAF if it is present
+  if(assertthat::has_name(eqtl, "MAF")){
+    summary_df = dplyr::select(summary_df, -MAF)
+  }
+  
+  #Add new coordinates
+  new_coords = dplyr::select(summary_df, -snp_id) %>%
+    dplyr::left_join(var_info, by = c("chr","pos")) %>%
+    dplyr::filter(!is.na(snp_id)) %>%
+    dplyr::arrange(pos)
+  
+  return(new_coords)
+}
+
+#' Test colocalisation between molecular QTL and GWAS summary stats
+#'
+#' @param qtl QTL summary stats (p_nominal, MAF, neta, snp_id)
+#' @param gwas GWAS summary stats(beta, se, MAF)
+#' @param N_qtl Sample size of the QTL mapping study
+#'
+#' @return
+#' @export
+colocQtlGWAS <- function(qtl, gwas, N_qtl){
+  coloc_res = coloc::coloc.abf(dataset1 = list(pvalues = qtl$p_nominal, 
+                                        N = N_qtl, 
+                                        MAF = qtl$MAF, 
+                                        type = "quant", 
+                                        beta = qtl$beta,
+                                        snp = qtl$snp_id),
+                        dataset2 = list(beta = gwas$beta, 
+                                        varbeta = gwas$se^2, 
+                                        type = "cc", 
+                                        snp = gwas$snp_id, 
+                                        MAF = gwas$MAF))
+  return(coloc_res)
+}
+
+colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, GRCh37_variants, GRCh38_variants, qtl_type = "rasqual"){
+  
+  result = tryCatch({
+    #Make GRanges object to fetch data
+    qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = 1e5)
+    gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = 1e5)
+    
+    #Fetch QTL summary stats
+    if(qtl_type == "rasqual"){
+      qtl_summaries = rasqualTools::tabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    } else{
+      qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    }
+    #Fetch GWAS summary stats
+    gwas_summaries = tabixFetchGWASSummary(gwas_ranges, gwas_summary_path)[[1]]
+    
+    #Substitute coordinate for the eqtl summary stats and add MAF
+    qtl = summaryReplaceCoordinates(qtl_summaries, GRCh37_variants)
+   
+    #Substitute snp_id for the GWAS summary stats and add MAF
+    gwas = summaryReplaceSnpId(gwas_summaries, GRCh37_variants)
+    
+    #Perform coloc analysis
+    coloc_res = colocQtlGWAS(qtl, gwas, N_qtl = 84)
+    coloc_summary = dplyr::tbl_df(t(data.frame(coloc_res$summary)))
+    
+    #Summary list
+    data_list = list(qtl = qtl, gwas = gwas)
+    
+    result = list(summary = coloc_summary, data = data_list)
+  }, error = function(err) {
+    print(paste("ERROR:",err))
+    result = list(summary = NULL, data = NULL)
+  }, finally = {
+    return(result)
+  }
+  )
 }
 
 
