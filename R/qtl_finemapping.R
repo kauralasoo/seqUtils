@@ -238,6 +238,15 @@ tabixFetchGWASSummary <- function(granges, summary_path){
   return(gwas_pvalues)
 }
 
+importGWASSummary <- function(summary_path){
+  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
+                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
+  gwas_col_types = c("ccicdddddddccc")
+  gwas_pvals = readr::read_tsv(summary_path,
+                               col_names = gwas_col_names, col_types = gwas_col_types, skip = 1)
+  return(gwas_pvals)
+}
+
 summaryReplaceCoordinates <- function(summary_df, variant_information){
   
   #Make key assertions
@@ -297,26 +306,49 @@ summaryReplaceSnpId <- function(summary_df, variant_information){
 #' @return
 #' @export
 colocQtlGWAS <- function(qtl, gwas, N_qtl){
-  coloc_res = coloc::coloc.abf(dataset1 = list(pvalues = qtl$p_nominal, 
-                                        N = N_qtl, 
-                                        MAF = qtl$MAF, 
-                                        type = "quant", 
-                                        beta = qtl$beta,
-                                        snp = qtl$snp_id),
-                        dataset2 = list(beta = gwas$beta, 
-                                        varbeta = gwas$se^2, 
-                                        type = "cc", 
-                                        snp = gwas$snp_id, 
-                                        MAF = gwas$MAF))
+  
+  #Count NAs for log_OR and beta
+  log_OR_NA_count = length(which(is.na(gwas$log_OR)))
+  beta_NA_count = length(which(is.na(gwas$beta)))
+  
+  #If beta is not specified then use log_OR
+  if(beta_NA_count <= log_OR_NA_count){
+    coloc_res = coloc::coloc.abf(dataset1 = list(pvalues = qtl$p_nominal, 
+                                                 N = N_qtl, 
+                                                 MAF = qtl$MAF, 
+                                                 type = "quant", 
+                                                 beta = qtl$beta,
+                                                 snp = qtl$snp_id),
+                                 dataset2 = list(beta = gwas$beta, 
+                                                 varbeta = gwas$se^2, 
+                                                 type = "cc", 
+                                                 snp = gwas$snp_id, 
+                                                 MAF = gwas$MAF))
+  } else{
+    coloc_res = coloc::coloc.abf(dataset1 = list(pvalues = qtl$p_nominal, 
+                                                 N = N_qtl, 
+                                                 MAF = qtl$MAF, 
+                                                 type = "quant", 
+                                                 beta = qtl$beta,
+                                                 snp = qtl$snp_id),
+                                 dataset2 = list(beta = gwas$log_OR, 
+                                                 varbeta = gwas$se^2, 
+                                                 type = "cc", 
+                                                 snp = gwas$snp_id, 
+                                                 MAF = gwas$MAF))
+  }
+
   return(coloc_res)
 }
 
-colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, GRCh37_variants, GRCh38_variants, qtl_type = "rasqual"){
+colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, 
+                               GRCh37_variants, GRCh38_variants, qtl_type = "rasqual",
+                               N_qtl = 84, cis_dist = 1e5){
   
   result = tryCatch({
     #Make GRanges object to fetch data
-    qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = 1e5)
-    gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = 1e5)
+    qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = cis_dist)
+    gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = cis_dist)
     
     #Fetch QTL summary stats
     if(qtl_type == "rasqual"){
@@ -334,8 +366,9 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, GRCh
     gwas = summaryReplaceSnpId(gwas_summaries, GRCh37_variants)
     
     #Perform coloc analysis
-    coloc_res = colocQtlGWAS(qtl, gwas, N_qtl = 84)
-    coloc_summary = dplyr::tbl_df(t(data.frame(coloc_res$summary)))
+    coloc_res = colocQtlGWAS(qtl, gwas, N_qtl = N_qtl)
+    coloc_summary = dplyr::tbl_df(t(data.frame(coloc_res$summary))) %>%
+      dplyr::mutate(qtl_pval = min(qtl$p_nominal), gwas_pval = min(gwas$p_nominal)) #Add minimal pvalues
     
     #Summary list
     data_list = list(qtl = qtl, gwas = gwas)
@@ -349,6 +382,25 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, GRCh
   }
   )
 }
+
+#Make coloc plot
+makeColocPlot <- function(data_list){
+  #Join data together
+  trait_df = purrr::map_df(data_list, ~dplyr::select(.,chr, pos, p_nominal), .id = "trait") %>%
+    dplyr::mutate(log10p = -log(p_nominal, 10))
+  
+  #Keep only matching varaints
+  trait_df = dplyr::mutate(dplyr::group_by(trait_df, pos), pos_count = length(pos)) %>% 
+    dplyr::filter(pos_count == 2) %>% 
+    dplyr::ungroup()
+  
+  #Make a plot
+  plot = ggplot(trait_df, aes(x = pos, y = log10p)) + 
+    geom_point() + facet_wrap(~trait, ncol = 1, scales = "free_y")
+  return(plot)
+}
+
+
 
 
 
