@@ -66,3 +66,239 @@ constructCredibleSet <- function(dataset, threshold = 0.95){
 }
 
 
+#' Construct a GRanges obejct corresponding to a cis region around one variant.
+#'
+#' @param variant_df data frame with at least snp_id column
+#' @param variant_information data.frame from importVariantInformation() function
+#' @param cis_dist Number of basepairs upstream and downstream of the variant.
+#'
+#' @return GRanges 
+#' @export
+constructVariantRanges <- function(variant_df, variant_information, cis_dist){
+  
+  #Make key assertions
+  assertthat::assert_that(assertthat::has_name(variant_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(variant_information, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(variant_information, "chr"))
+  assertthat::assert_that(assertthat::has_name(variant_information, "pos"))
+  
+  #Filter variant information to contain only required snps
+  var_info = dplyr::filter(variant_information, snp_id %in% variant_df$snp_id) %>%
+    dplyr::select(snp_id, chr, pos, MAF)
+  
+  #Add variant info to variant df
+  var_df = dplyr::left_join(variant_df, var_info, by = "snp_id")
+  
+  #Make a ranges object
+  var_ranges = var_df %>%
+    dplyr::rename(seqnames = chr) %>%
+    dplyr::mutate(start = pos - cis_dist, end = pos + cis_dist, strand = "*") %>%
+    dataFrameToGRanges()
+  
+  return(var_ranges)
+}
+
+tabixFetchGWASSummary <- function(granges, summary_path){
+  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
+                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
+  gwas_col_types = c("ccicdddddddccc")
+  gwas_pvalues = scanTabixDataFrame(summary_path, granges, col_names = gwas_col_names, col_types = gwas_col_types)
+  return(gwas_pvalues)
+}
+
+importGWASSummary <- function(summary_path){
+  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
+                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
+  gwas_col_types = c("ccicdddddddccc")
+  gwas_pvals = readr::read_tsv(summary_path,
+                               col_names = gwas_col_names, col_types = gwas_col_types, skip = 1)
+  return(gwas_pvals)
+}
+
+summaryReplaceCoordinates <- function(summary_df, variant_information){
+  
+  #Make key assertions
+  assertthat::assert_that(assertthat::has_name(summary_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "pos"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "chr"))
+  
+  #Filter variant information to contain only required snps
+  var_info = dplyr::filter(variant_information, snp_id %in% summary_df$snp_id) %>%
+    dplyr::select(snp_id, chr, pos, MAF)
+  
+  #Remove MAF if it is present
+  if(assertthat::has_name(summary_df, "MAF")){
+    summary_df = dplyr::select(summary_df, -MAF)
+  }
+  
+  #Add new coordinates
+  new_coords = dplyr::select(summary_df, -chr, -pos) %>%
+    dplyr::left_join(var_info, by = "snp_id") %>%
+    dplyr::filter(!is.na(pos)) %>%
+    dplyr::arrange(pos)
+  
+  return(new_coords)
+}
+
+summaryReplaceSnpId <- function(summary_df, variant_information){
+  
+  #Make key assertions
+  assertthat::assert_that(assertthat::has_name(summary_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "pos"))
+  assertthat::assert_that(assertthat::has_name(summary_df, "chr"))
+  
+  #Filter variant information to contain only required snps
+  var_info = dplyr::filter(variant_information, pos %in% summary_df$pos) %>%
+    dplyr::select(snp_id, chr, pos, MAF)
+  
+  #Remove MAF if it is present
+  if(assertthat::has_name(summary_df, "MAF")){
+    summary_df = dplyr::select(summary_df, -MAF)
+  }
+  
+  #Add new coordinates
+  new_coords = dplyr::select(summary_df, -snp_id) %>%
+    dplyr::left_join(var_info, by = c("chr","pos")) %>%
+    dplyr::filter(!is.na(snp_id)) %>%
+    dplyr::arrange(pos)
+  
+  return(new_coords)
+}
+
+#' Test colocalisation between molecular QTL and GWAS summary stats
+#'
+#' @param qtl QTL summary stats (p_nominal, MAF, neta, snp_id)
+#' @param gwas GWAS summary stats(beta, se, MAF)
+#' @param N_qtl Sample size of the QTL mapping study
+#'
+#' @return coloc.abf result object
+#' @export
+colocQtlGWAS <- function(qtl, gwas, N_qtl){
+  
+  #Count NAs for log_OR and beta
+  log_OR_NA_count = length(which(is.na(gwas$log_OR)))
+  beta_NA_count = length(which(is.na(gwas$beta)))
+  
+  #Remove GWAS SNPs with NA std error
+  gwas = dplyr::filter(gwas, !is.na(se))
+  
+  #If beta is not specified then use log_OR
+  if(beta_NA_count <= log_OR_NA_count){
+    coloc_res = coloc::coloc.abf(dataset1 = list(pvalues = qtl$p_nominal, 
+                                                 N = N_qtl, 
+                                                 MAF = qtl$MAF, 
+                                                 type = "quant", 
+                                                 beta = qtl$beta,
+                                                 snp = qtl$snp_id),
+                                 dataset2 = list(beta = gwas$beta, 
+                                                 varbeta = gwas$se^2, 
+                                                 type = "cc", 
+                                                 snp = gwas$snp_id, 
+                                                 MAF = gwas$MAF))
+  } else{
+    coloc_res = coloc::coloc.abf(dataset1 = list(pvalues = qtl$p_nominal, 
+                                                 N = N_qtl, 
+                                                 MAF = qtl$MAF, 
+                                                 type = "quant", 
+                                                 beta = qtl$beta,
+                                                 snp = qtl$snp_id),
+                                 dataset2 = list(beta = gwas$log_OR, 
+                                                 varbeta = gwas$se^2, 
+                                                 type = "cc", 
+                                                 snp = gwas$snp_id, 
+                                                 MAF = gwas$MAF))
+  }
+  
+  return(coloc_res)
+}
+
+colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, 
+                               GRCh37_variants, GRCh38_variants, qtl_type = "rasqual",
+                               N_qtl = 84, cis_dist = 1e5){
+  
+  result = tryCatch({
+    #Make GRanges object to fetch data
+    qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = cis_dist)
+    gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = cis_dist)
+    
+    #Fetch QTL summary stats
+    if(qtl_type == "rasqual"){
+      qtl_summaries = rasqualTools::tabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    } else{
+      qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    }
+    #Fetch GWAS summary stats
+    gwas_summaries = tabixFetchGWASSummary(gwas_ranges, gwas_summary_path)[[1]]
+    
+    #Substitute coordinate for the eqtl summary stats and add MAF
+    qtl = summaryReplaceCoordinates(qtl_summaries, GRCh37_variants)
+    
+    #Substitute snp_id for the GWAS summary stats and add MAF
+    gwas = summaryReplaceSnpId(gwas_summaries, GRCh37_variants)
+    
+    #Perform coloc analysis
+    coloc_res = colocQtlGWAS(qtl, gwas, N_qtl = N_qtl)
+    coloc_summary = dplyr::tbl_df(t(data.frame(coloc_res$summary))) %>%
+      dplyr::mutate(qtl_pval = min(qtl$p_nominal), gwas_pval = min(gwas$p_nominal)) #Add minimal pvalues
+    
+    #Summary list
+    data_list = list(qtl = qtl, gwas = gwas)
+    
+    result = list(summary = coloc_summary, data = data_list)
+  }, error = function(err) {
+    print(paste("ERROR:",err))
+    result = list(summary = NULL, data = NULL)
+  }
+  )
+  return(result)
+}
+
+colocMolecularQTLsByRow <- function(qtl_df, ...){
+  result = purrr::by_row(qtl_df, ~colocMolecularQTLs(.,...)$summary, .collate = "rows")
+}
+
+#Make coloc plot
+makeColocPlot <- function(data_list){
+  #Join data together
+  trait_df = purrr::map_df(data_list, ~dplyr::select(.,chr, pos, p_nominal), .id = "trait") %>%
+    dplyr::mutate(log10p = -log(p_nominal, 10))
+  
+  #Keep only matching varaints
+  trait_df = dplyr::mutate(dplyr::group_by(trait_df, pos), pos_count = length(pos)) %>% 
+    dplyr::filter(pos_count == 2) %>% 
+    dplyr::ungroup()
+  
+  #Make a plot
+  plot = ggplot(trait_df, aes(x = pos, y = log10p)) + 
+    geom_point() + facet_wrap(~trait, ncol = 1, scales = "free_y")
+  return(plot)
+}
+
+prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
+  
+  #Import top GWAS p-values
+  gwas_pvals = importGWASSummary(paste0(gwas_prefix,".top_hits.txt.gz")) %>%
+    dplyr::filter(p_nominal < gwas_thresh) %>%
+    dplyr::transmute(chr = chr, gwas_pos = pos)
+  
+  #Filter lead variants
+  qtl_hits = purrr::map(qtl_min_pvalues, ~dplyr::filter(., p_fdr < fdr_thresh))
+  lead_variants = purrr::map_df(qtl_hits, identity) %>% unique()
+  selected_variants = dplyr::filter(GRCh37_variants, snp_id %in% lead_variants$snp_id) %>% 
+    dplyr::select(chr, pos, snp_id)
+  
+  #Add GRCh37 coordinates
+  qtl_pos = purrr::map(qtl_hits, ~dplyr::left_join(., selected_variants, by = "snp_id") %>%
+                         dplyr::filter(!is.na(pos)))
+  
+  #Identify genes that have associated variants nearby (ignoring LD)
+  qtl_df_list = purrr::map(qtl_pos, ~dplyr::left_join(., gwas_pvals, by = "chr") %>%
+                             dplyr::mutate(distance = abs(gwas_pos - pos)) %>%
+                             dplyr::filter(distance < overlap_dist) %>%
+                             dplyr::select(gene_id, snp_id) %>% unique())
+  
+}
+
+
+
+
