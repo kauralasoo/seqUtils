@@ -284,7 +284,7 @@ summaryReplaceSnpId <- function(summary_df, variant_information){
     dplyr::select(snp_id, chr, pos, MAF)
   
   #Remove MAF if it is present
-  if(assertthat::has_name(eqtl, "MAF")){
+  if(assertthat::has_name(summary_df, "MAF")){
     summary_df = dplyr::select(summary_df, -MAF)
   }
   
@@ -310,6 +310,9 @@ colocQtlGWAS <- function(qtl, gwas, N_qtl){
   #Count NAs for log_OR and beta
   log_OR_NA_count = length(which(is.na(gwas$log_OR)))
   beta_NA_count = length(which(is.na(gwas$beta)))
+  
+  #Remove GWAS SNPs with NA std error
+  gwas = dplyr::filter(gwas, !is.na(se))
   
   #If beta is not specified then use log_OR
   if(beta_NA_count <= log_OR_NA_count){
