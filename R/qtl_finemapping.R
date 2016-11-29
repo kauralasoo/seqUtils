@@ -380,10 +380,9 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
   }, error = function(err) {
     print(paste("ERROR:",err))
     result = list(summary = NULL, data = NULL)
-  }, finally = {
-    return(result)
   }
   )
+  return(result)
 }
 
 colocMolecularQTLsByRow <- function(qtl_df, ...){
