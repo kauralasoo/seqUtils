@@ -259,7 +259,7 @@ summaryReplaceCoordinates <- function(summary_df, variant_information){
     dplyr::select(snp_id, chr, pos, MAF)
   
   #Remove MAF if it is present
-  if(assertthat::has_name(eqtl, "MAF")){
+  if(assertthat::has_name(summary_df, "MAF")){
     summary_df = dplyr::select(summary_df, -MAF)
   }
   
@@ -361,7 +361,7 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
     
     #Substitute coordinate for the eqtl summary stats and add MAF
     qtl = summaryReplaceCoordinates(qtl_summaries, GRCh37_variants)
-   
+
     #Substitute snp_id for the GWAS summary stats and add MAF
     gwas = summaryReplaceSnpId(gwas_summaries, GRCh37_variants)
     
@@ -383,6 +383,10 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
   )
 }
 
+colocMolecularQTLsByRow <- function(qtl_df, ...){
+  result = purrr::by_row(qtl_df, ~colocMolecularQTLs(.,...)$summary, .collate = "rows")
+}
+
 #Make coloc plot
 makeColocPlot <- function(data_list){
   #Join data together
@@ -398,6 +402,31 @@ makeColocPlot <- function(data_list){
   plot = ggplot(trait_df, aes(x = pos, y = log10p)) + 
     geom_point() + facet_wrap(~trait, ncol = 1, scales = "free_y")
   return(plot)
+}
+
+prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
+  
+  #Import top GWAS p-values
+  gwas_pvals = importGWASSummary(paste0(gwas_prefix,".top_hits.txt.gz")) %>%
+    dplyr::filter(p_nominal < gwas_thresh) %>%
+    dplyr::transmute(chr = chr, gwas_pos = pos)
+  
+  #Filter lead variants
+  qtl_hits = purrr::map(qtl_min_pvalues, ~dplyr::filter(., p_fdr < fdr_thresh))
+  lead_variants = purrr::map_df(qtl_hits, identity) %>% unique()
+  selected_variants = dplyr::filter(GRCh37_variants, snp_id %in% lead_variants$snp_id) %>% 
+    dplyr::select(chr, pos, snp_id)
+  
+  #Add GRCh37 coordinates
+  qtl_pos = purrr::map(qtl_hits, ~dplyr::left_join(., selected_variants, by = "snp_id") %>%
+                         dplyr::filter(!is.na(pos)))
+  
+  #Identify genes that have associated variants nearby (ignoring LD)
+  qtl_df_list = purrr::map(qtl_pos, ~dplyr::left_join(., gwas_pvals, by = "chr") %>%
+                             dplyr::mutate(distance = abs(gwas_pos - pos)) %>%
+                             dplyr::filter(distance < overlap_dist) %>%
+                             dplyr::select(gene_id, snp_id) %>% unique())
+  
 }
 
 
