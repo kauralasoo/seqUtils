@@ -236,10 +236,15 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
     #Substitute snp_id for the GWAS summary stats and add MAF
     gwas = summaryReplaceSnpId(gwas_summaries, GRCh37_variants)
     
+    #Extract minimal p-values for both traits
+    qtl_min = dplyr::arrange(qtl, p_nominal) %>% dplyr::filter(row_number() == 1)
+    gwas_min = dplyr::arrange(gwas, p_nominal) %>% dplyr::filter(row_number() == 1)
+    
     #Perform coloc analysis
     coloc_res = colocQtlGWAS(qtl, gwas, N_qtl = N_qtl)
     coloc_summary = dplyr::tbl_df(t(data.frame(coloc_res$summary))) %>%
-      dplyr::mutate(qtl_pval = min(qtl$p_nominal), gwas_pval = min(gwas$p_nominal)) #Add minimal pvalues
+      dplyr::mutate(qtl_pval = qtl_min$p_nominal, gwas_pval = gwas_min$p_nominal,
+                    qtl_lead = qtl_min$snp_id, gwas_lead = gwas_min$snp_id) #Add minimal pvalues
     
     #Summary list
     data_list = list(qtl = qtl, gwas = gwas)
