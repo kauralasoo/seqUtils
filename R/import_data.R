@@ -323,12 +323,23 @@ importVariantInformation <- function(path){
   return(snp_info)
 }
 
-importGWASSummaryStats <- function(region, path){
-  gwas_colnames = c("chr","pos","pos2","snp_id","A1","A2", "INFO","OR","SE","p_nominal")
-  gwas_coltypes = "ciicccdddd"
-  gwas_pvalues = scanTabixDataFrame(path, region, col_names = gwas_colnames, col_types = gwas_coltypes)
-  gwas_pvalues = purrr::map(gwas_pvalues, ~dplyr::select(.,-pos2))
+#' Import a specific region from a tabix-indexed GWAS summary stats file
+tabixFetchGWASSummary <- function(granges, summary_path){
+  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
+                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
+  gwas_col_types = c("ccicdddddddccc")
+  gwas_pvalues = scanTabixDataFrame(summary_path, granges, col_names = gwas_col_names, col_types = gwas_col_types)
   return(gwas_pvalues)
+}
+
+#' Import full GWAS summary stats file
+importGWASSummary <- function(summary_path){
+  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
+                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
+  gwas_col_types = c("ccicdddddddccc")
+  gwas_pvals = readr::read_tsv(summary_path,
+                               col_names = gwas_col_names, col_types = gwas_col_types, skip = 1)
+  return(gwas_pvals)
 }
 
 importMotifDisruptions <- function(path){

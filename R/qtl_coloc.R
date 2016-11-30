@@ -98,23 +98,6 @@ constructVariantRanges <- function(variant_df, variant_information, cis_dist){
   return(var_ranges)
 }
 
-tabixFetchGWASSummary <- function(granges, summary_path){
-  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
-                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
-  gwas_col_types = c("ccicdddddddccc")
-  gwas_pvalues = scanTabixDataFrame(summary_path, granges, col_names = gwas_col_names, col_types = gwas_col_types)
-  return(gwas_pvalues)
-}
-
-importGWASSummary <- function(summary_path){
-  gwas_col_names = c("snp_id", "chr", "pos", "effect_allele", "MAF", 
-                     "p_nominal", "beta", "OR", "log_OR", "se", "z_score", "trait", "PMID", "used_file")
-  gwas_col_types = c("ccicdddddddccc")
-  gwas_pvals = readr::read_tsv(summary_path,
-                               col_names = gwas_col_names, col_types = gwas_col_types, skip = 1)
-  return(gwas_pvals)
-}
-
 summaryReplaceCoordinates <- function(summary_df, variant_information){
   
   #Make key assertions
@@ -303,6 +286,8 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
                              dplyr::select(gene_id, snp_id) %>% unique())
   
 }
+
+
 
 
 
