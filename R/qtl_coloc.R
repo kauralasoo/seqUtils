@@ -196,7 +196,7 @@ colocQtlGWAS <- function(qtl, gwas, N_qtl){
 }
 
 colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, 
-                               GRCh37_variants, GRCh38_variants, qtl_type = "rasqual",
+                               GRCh37_variants, GRCh38_variants,
                                N_qtl = 84, cis_dist = 1e5){
   
   result = tryCatch({
@@ -205,11 +205,8 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
     gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = cis_dist)
     
     #Fetch QTL summary stats
-    if(qtl_type == "rasqual"){
-      qtl_summaries = rasqualTools::tabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
-    } else{
-      qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
-    }
+    qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+
     #Fetch GWAS summary stats
     gwas_summaries = tabixFetchGWASSummary(gwas_ranges, gwas_summary_path)[[1]]
     
@@ -287,6 +284,38 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
   
 }
 
+importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir = "databases/GWAS/summary", 
+                                     qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5){
+  
+  #Print gene_id
+  print(qtl_df$gene_id)
+  
+  #Make GRanges objectsto fetch data
+  qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = cis_dist)
+  gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = cis_dist)
+  
+  #Set Identify the location of the gwas file
+  gwas_file_name = dplyr::filter(gwas_stats_labeled, trait == qtl_df$trait)$file_name
+  gwas_prefix = file.path(gwas_dir, gwas_file_name)
+  
+  #Import GWAS pvalues
+  trait_name = as.vector(qtl_df$trait)
+  gwas_summaries = tabixFetchGWASSummary(gwas_ranges, summary_path = paste0(gwas_prefix, ".sorted.txt.gz"))[[1]] %>%
+    summaryReplaceSnpId(GRCh37_variants) %>%
+    dplyr::transmute(condition_name = trait_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
+  
+  #Fetch QTL summary stats
+  qtl_summaries = purrr::map_df(qtl_paths, ~fastqtlTabixFetchGenes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
+    summaryReplaceCoordinates(GRCh37_variants) %>%
+    dplyr::transmute(condition_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
+  
+  #Merge data
+  full_data = dplyr::bind_rows(gwas_summaries, qtl_summaries) %>% 
+    dplyr::mutate(condition_name = factor(condition_name, levels = c(trait_name, names(qtl_paths))))
+  
+  return(full_data)
+  
+}
 
 
 
