@@ -259,7 +259,8 @@ makeColocPlot <- function(data_list){
   return(plot)
 }
 
-prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
+prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, 
+                                     fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
   
   #Import top GWAS p-values
   gwas_pvals = importGWASSummary(paste0(gwas_prefix,".top_hits.txt.gz")) %>%
