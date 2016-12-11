@@ -194,5 +194,13 @@ wiggpleplotrConstructPeakAnnotations <- function(selected_peaks){
   return(list(peak_list = peak_list, peak_annot = peak_annot))
 }
 
+wiggleplotrExtractPeaks <- function(region_coords, chrom, peak_metadata){
+  
+  #Select peaks from the region and construct peak annotations
+  selected_peaks = dplyr::filter(peak_metadata, start > region_coords[1], end < region_coords[2], chr == chrom)
+  peak_annot = wiggpleplotrConstructPeakAnnotations(selected_peaks)
+  
+  return(peak_annot)
+}
 
 
