@@ -76,8 +76,8 @@ addOverlappingPeaks <- function(qtl_credible_set, atac_peak_metadata, extend = 0
   
   #Find overlapping peaks for each variant
   olaps = GenomicRanges::findOverlaps(variant_ranges, peak_ranges, ignore.strand = TRUE)
-  variants_overlaps = variant_ranges[GenomicRanges::queryHits(olaps)]
-  peak_overlaps = peak_ranges[GenomicRanges::subjectHits(olaps),]
+  variants_overlaps = variant_ranges[S4Vectors::queryHits(olaps)]
+  peak_overlaps = peak_ranges[S4Vectors::subjectHits(olaps),]
   overlapping_peaks = dplyr::data_frame(snp_id = variants_overlaps$snp_id, overlap_peak_id = peak_overlaps$gene_id)
   
   #Add overlapping peaks
