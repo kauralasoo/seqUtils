@@ -245,3 +245,42 @@ calculatePairwiseConcordance <- function(qtl_list, filter_formula, genotype_matr
   return(rep_matrix)
 }
 
+
+#' Calculate FDR based on an empirical null distribution
+#'
+#' Author: Natsuhiko Kumasaka
+#' 
+#' @param p1 alt p-value vector
+#' @param p0 null p-value vector
+#' @param alpha desired FDR level
+#' @param z ?
+#' @param subset ?
+#'
+#' @return P-value cutoff corresponding to the desired FDR
+#' @export
+getFDR <- function(p1,p0,alpha=0.1,z=NULL,subset=NULL){
+    if(is.null(z)){
+      a=0
+      for(itr in 1:10){
+        #print(a)
+        a=getFDR(p1,p0,alpha,rev(a+0:100/100^itr),subset)
+      }
+      a
+    }else{
+      if(!is.null(subset)){
+        p1=p1[subset]
+        p0=p0[subset]
+      }
+      p1=p1[!is.na(p1)]
+      p0=p0[!is.na(p0)]
+      x=NULL;
+      for(i in z){
+        x=c(x,sum(p0<i)/length(p0)/(sum(p1<i)/length(p1)))
+      };
+      #plot(z,x,log="xy");
+      #abline(h=alpha)
+      #invisible(x)
+      max(c(0,z[x<alpha]),na.rm=T)
+    }
+  }
+
