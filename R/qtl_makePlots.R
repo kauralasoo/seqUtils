@@ -56,22 +56,21 @@ constructQtlPlotDataFrame <- function(selected_gene_id, genotype_id, expression_
   return(plot_df)
 }
 
-plotQtlRow <- function(qtl_df, ylabel = "Normalized expression"){
-  plot = ggplot2::ggplot(qtl_df, ggplot2::aes(x = genotype_value, y = norm_exp, color = condition_name)) + 
-    ggplot2::facet_grid(~condition_name) + 
+plotQtlRow <- function(qtl_df, scales = "fixed"){
+  plot = ggplot2::ggplot(qtl_df, ggplot2::aes(x = genotype_text, y = norm_exp, color = condition_name)) + 
+    ggplot2::facet_wrap(~condition_name, scales = scales, nrow = 1) + 
     ggplot2::geom_boxplot(outlier.shape = NA) + 
     ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .2), size = 0.5) + 
-    ggplot2::ylab(ylabel) +
+    ggplot2::ylab(paste0(qtl_df$gene_name[1], " expression")) +
     ggplot2::xlab(qtl_df$snp_id[1]) + 
-    ggplot2::labs(title = qtl_df$gene_name[1]) + 
     ggplot2::theme_light() + 
     ggplot2::scale_color_manual(values = conditionPalette(), guide=FALSE)
   return(plot)
 }
 
-plotQtlCol <- function(qtl_df){
+plotQtlCol <- function(qtl_df, scales = "fixed"){
   plot = ggplot2::ggplot(qtl_df, ggplot2::aes(x = genotype_text, y = norm_exp, color = condition_name)) + 
-    ggplot2::facet_wrap(~condition_name, ncol = 1) + 
+    ggplot2::facet_wrap(~condition_name, ncol = 1, scales = scales) + 
     ggplot2::geom_boxplot(outlier.shape = NA) + 
     ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .2), size = 0.5) + 
     ggplot2::ylab(paste0(qtl_df$gene_name[1], " expression")) +
