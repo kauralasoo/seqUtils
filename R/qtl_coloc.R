@@ -286,7 +286,11 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
 }
 
 importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir = "databases/GWAS/summary", 
-                                     qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5){
+                                     qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5, use_rasqual = FALSE){
+  
+  assertthat::assert_that(assertthat::has_name(qtl_df, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(qtl_df, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(qtl_df, "trait"))
   
   #Print gene_id
   print(qtl_df$gene_id)
@@ -302,12 +306,17 @@ importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir = "d
   #Import GWAS pvalues
   trait_name = as.vector(qtl_df$trait)
   gwas_summaries = tabixFetchGWASSummary(gwas_ranges, summary_path = paste0(gwas_prefix, ".sorted.txt.gz"))[[1]] %>%
-    summaryReplaceSnpId(GRCh37_variants) %>%
+    summaryReplaceSnpId(GRCh37_variants) %>% 
+    summaryReplaceCoordinates(GRCh38_variants) %>%
     dplyr::transmute(condition_name = trait_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
   
   #Fetch QTL summary stats
-  qtl_summaries = purrr::map_df(qtl_paths, ~fastqtlTabixFetchGenes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
-    summaryReplaceCoordinates(GRCh37_variants) %>%
+  if(use_rasqual){
+    qtl_fetch_function = rasqualTools::tabixFetchGenes
+  } else{
+    qtl_fetch_function = fastqtlTabixFetchGenes
+  }
+  qtl_summaries = purrr::map_df(qtl_paths, ~qtl_fetch_function(qtl_ranges, .)[[1]], .id = "condition_name") %>%
     dplyr::transmute(condition_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
   
   #Merge data
