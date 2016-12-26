@@ -164,6 +164,17 @@ calculateR2FromLead <- function(snp_ids, genotypes){
   return(r2)
 }
 
+calculatePairR2 <- function(snp_id1, snp_id2, genotypes){
+  
+  #Extract genotypes
+  gt1 = genotypes[snp_id1,]
+  gt2 = genotypes[snp_id2,]
+  
+  #Calcuate R2
+  r2 = cor(gt1, gt2, use = "pairwise.complete.obs")^2
+  return(r2)
+}
+
 #' Add expected p-value for Q-Q plots
 #'
 #' @param pvalue_df 
