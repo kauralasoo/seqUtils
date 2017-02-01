@@ -133,16 +133,63 @@ testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_
   }
 }
 
+#' Test for interaction between genotype and condition using ANOVA and lme4
+#'
+#' @param gene_id Tested gene id
+#' @param snp_id Tested SNP id
+#' @param trait_matrix expression or chromatin accessibility matrix
+#' @param sample_metadata data frame with sample metadata and covariates
+#' @param vcf_file VCF file from gdsToMatrix() function
+#' @param qtl_formula Formula for the model with just genotype and condition terms
+#' @param interaction_formula Formula for the model with interaction term betweeb genotype and condition
+#'
+#' @return Either a pvalue (if return_value == "ponly") or the full linear model object.
+#' @export
+testInteractionLme4 <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula,
+                            interaction_formula, return_value = "ponly"){
+  
+  #Some basic assertions
+  assertthat::assert_that(is.matrix(trait_matrix))
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "sample_id"))
+  assertthat::assert_that(assertthat::has_name(sample_metadata, "genotype_id"))
+  
+  #Extract data
+  exp_data = data_frame(sample_id = colnames(trait_matrix), expression = trait_matrix[gene_id,])
+  geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
+  
+  sample_data = dplyr::left_join(sample_metadata, exp_data, by = "sample_id") %>%
+    dplyr::left_join(geno_data, by = "genotype_id")
+  
+  #apply two models to the data and compare them using anova
+  no_interaction = lmer(qtl_formula, sample_data, REML = FALSE)
+  interaction = lmer(interaction_formula, sample_data, REML = FALSE)
+  res = anova(no_interaction, interaction)
+  
+  #Return value
+  if(return_value == "ponly"){
+    return(res[[8]])
+  }
+  else{
+    return(list(anova = res, interaction_model = interaction))
+  }
+}
+
+
 #Run testInteraction on a data.frame of gene-SNP pairs
 testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf_file, qtl_formula, 
-                                     interaction_formula, return_value = "ponly", id_field_separator = ";"){
+                                     interaction_formula, return_value = "ponly", id_field_separator = ";",
+                                     lme4 = FALSE){
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
   for(i in 1:nrow(snps_df)){
     gene_id = snps_df[i,]$gene_id
     snp_id = snps_df[i,]$snp_id
     print(gene_id)
-    test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
+    if (lme4 == TRUE){
+      test = testInteractionLme4(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
+    } else{
+      test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
+    }
     result[[paste(gene_id,snp_id, sep = id_field_separator)]] = test
   }
   return(result)
