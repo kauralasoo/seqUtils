@@ -5,7 +5,7 @@
 \title{Import output files from bedCountFragmentLengths.py script into R.}
 \usage{
 loadFragmentLengths(sample_dir, sample_names,
-  file_suffix = ".fragment_lengths.txt")
+  file_suffix = ".fragment_lengths.txt", sub_dir = TRUE)
 }
 \arguments{
 \item{sample_dir}{Path to the directory containing the fragment length files.}

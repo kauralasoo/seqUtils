@@ -93,11 +93,15 @@ loadVerifyBamID <- function(sample_names, sample_dir, suffix = ".verifyBamID.bes
   return(matrix)
 }
 
-loadChrCounts <- function(sample_dir, sample_names, counts_suffix = ".chr_counts"){
+loadChrCounts <- function(sample_dir, sample_names, counts_suffix = ".chr_counts", sub_dir = TRUE){
   #Import read counts per chromosome for each sample (used for estimating MT fraction in ATAC-Seq)
   matrix = c()
   for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], counts_suffix, sep = ""))
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], counts_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], counts_suffix, sep = ""))      
+    }
     print(path)
     table = read.table(path, header = FALSE, stringsAsFactors = FALSE)
     colnames(table) = c(sample_names[i], "chr_name")
@@ -137,13 +141,18 @@ loadFeaturCountsSummary <- function(sample_dir, sample_names, counts_suffix = ".
   return(matrix)
 }
 
-loadMarkDuplicates <- function(sample_dir, sample_names, counts_suffix = ".MarkDuplicates.txt"){
+loadMarkDuplicates <- function(sample_dir, sample_names, counts_suffix = ".MarkDuplicates.txt", sub_dir = TRUE){
   #Import MarkDuplicates summary files
   matrix = c()
   for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], counts_suffix, sep = ""))
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], counts_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], counts_suffix, sep = ""))      
+    }
     print(path)
-    data = read.table(path, skip = 6, nrows = 2, stringsAsFactors = FALSE)
+    data = readr::read_tsv(path, skip = 6, col_names = FALSE)
+    data = data[-2,]
     table = as.data.frame(t(data),stringsAsFactors = FALSE)
     colnames(table) = c("statistic", sample_names[i])
     if (i == 1){
@@ -264,10 +273,14 @@ gdsToMatrix <- function(gds_file){
 #' @return List of GRanges objects corresponding to peak calls from each sample.
 #' @author Kaur Alasoo
 #' @export 
-loadFragmentLengths <- function(sample_dir, sample_names, file_suffix = ".fragment_lengths.txt"){
+loadFragmentLengths <- function(sample_dir, sample_names, file_suffix = ".fragment_lengths.txt", sub_dir = TRUE){
   result = c()
   for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], file_suffix, sep = ""))
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], file_suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], file_suffix, sep = ""))
+    }
     table = read.table(path) %>% dplyr::tbl_df()
     colnames(table) = c("count", "fragment_length")
     sample_table = dplyr::mutate(table, sample_id = sample_names[i])
