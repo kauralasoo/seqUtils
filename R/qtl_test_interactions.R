@@ -117,8 +117,9 @@ testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_
   geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
   
   sample_data = dplyr::left_join(sample_metadata, exp_data, by = "sample_id") %>%
-    dplyr::left_join(geno_data, by = "genotype_id")
-  
+    dplyr::left_join(geno_data, by = "genotype_id") %>%
+    dplyr::filter(!is.na(genotype)) #Remove NA genotypes, because lm does not like them
+
   #apply two models to the data and compare them using anova
   no_interaction = lm(qtl_formula, as.data.frame(sample_data))
   interaction = lm(interaction_formula, as.data.frame(sample_data))
@@ -161,8 +162,8 @@ testInteractionLme4 <- function(gene_id, snp_id, trait_matrix, sample_metadata, 
     dplyr::left_join(geno_data, by = "genotype_id")
   
   #apply two models to the data and compare them using anova
-  no_interaction = lmer(qtl_formula, sample_data, REML = FALSE)
-  interaction = lmer(interaction_formula, sample_data, REML = FALSE)
+  no_interaction = lme4::lmer(qtl_formula, sample_data, REML = FALSE)
+  interaction = lme4::lmer(interaction_formula, sample_data, REML = FALSE)
   res = anova(no_interaction, interaction)
   
   #Return value
