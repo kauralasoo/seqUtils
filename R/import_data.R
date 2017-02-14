@@ -80,10 +80,14 @@ loadIntronEventCounts <- function(sample_dir, sample_names, counts_suffix = ".in
   return(matrix)
 }
 
-loadVerifyBamID <- function(sample_names, sample_dir, suffix = ".verifyBamID.bestSM"){
+loadVerifyBamID <- function(sample_names, sample_dir, suffix = ".verifyBamID.bestSM", sub_dir = TRUE){
   matrix = c()
   for (i in c(1:length(sample_names))){
-    path = file.path(sample_dir, sample_names[i], paste(sample_names[i], suffix, sep = ""))
+    if (sub_dir == TRUE){
+      path = file.path(sample_dir, sample_names[i], paste(sample_names[i], suffix, sep = ""))
+    } else {
+      path = file.path(sample_dir, paste(sample_names[i], suffix, sep = ""))
+    }
     table = read.table(path, comment.char = "", sep ="\t", header = TRUE) %>%
       dplyr::select(CHIP_ID, FREEMIX) %>%
       dplyr::mutate(sample_id = sample_names[i]) %>%

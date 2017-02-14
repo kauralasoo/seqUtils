@@ -156,3 +156,33 @@ quantileNormaliseCols <- function(matrix,...){
 quantileNormaliseRows <- function(matrix,...){
   t(quantileNormaliseMatrix(t(matrix), ...))
 }
+
+calculateTranscriptRatios <- function(expression_matrix, gene_transcript_map){
+  
+  #Check that gene_transcript_map has the correct columns
+  assertthat::assert_that(assertthat::has_name(gene_transcript_map, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(gene_transcript_map, "transcript_id"))
+  assertthat::assert_that(length(colnames(gene_transcript_map)) == 2)
+  
+  #Add gene ids to transcript expression matrix
+  tpm_df = dplyr::mutate(as.data.frame(expression_matrix), transcript_id = rownames(expression_matrix)) %>%
+    tbl_df() %>%
+    dplyr::left_join(gene_transcript_map, by = "transcript_id") %>%
+    dplyr::select(-transcript_id) %>%
+    dplyr::select(gene_id, everything())
+  
+  #Calculate total expression per gene
+  gene_total_tpms = purrr::slice_rows(tpm_df, "gene_id") %>% 
+    purrr::by_slice(~colSums(.) %>% 
+                      t() %>% 
+                      as.data.frame(), .collate = "rows")
+  
+  #Make matrix of gene expression values for each transcript
+  tx_gene_expression = dplyr::left_join(gene_transcript_map, gene_total_tpms, by = "gene_id")
+  tx_gene_matrix = dplyr::select(tx_gene_expression, -gene_id, -transcript_id) %>% as.matrix()
+  rownames(tx_gene_matrix) = tx_gene_expression$transcript_id
+  
+  #calculate TPM ratios and add them to the SummarizedExperiment
+  tpm_ratios = expression_matrix/tx_gene_matrix[rownames(expression_matrix),]
+  return(tpm_ratios)
+}
