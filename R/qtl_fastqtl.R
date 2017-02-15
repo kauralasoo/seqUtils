@@ -53,6 +53,35 @@ constructFastQTLGenePos <- function(gene_metadata){
   return(genepos)
 }
 
+#' Construct gene position data.frame suitable for QTLtools
+#' 
+#' @param gene_metadata Gene metadata data frame from expression list (columns: chr, start, end, gene_id, transcript_id, strand)
+#' @return data_frame suitable for FastQTL
+#' @author Kaur Alasoo
+#' @export 
+constructQTLtoolsGenePos <- function(gene_metadata){
+  genepos = dplyr::select(gene_metadata, chr, start, end, transcript_id, gene_id, strand) %>% 
+    dplyr::arrange(chr, start) %>%
+    dplyr::rename_("left" = "start", "right" = "end", "#chr" = "chr") %>%
+    dplyr::mutate(strand = ifelse(strand == 1, "+", "-"))
+  return(genepos)
+}
+
+#' Add gene position to the QTLtools expression matrix
+#' 
+#' @param matrix expression matrix
+#' @param genepos data frame form constructQTLtoolsGenePos
+#' @return data_frame suitable for QTLtools
+#' @author Kaur Alasoo
+#' @export 
+prepareQTLtoolsMatrix <- function(matrix, genepos){
+  res = dplyr::mutate(as.data.frame(matrix), transcript_id = rownames(matrix)) %>%
+    dplyr::select(transcript_id, everything()) %>%
+    dplyr::left_join(genepos, ., by = "transcript_id") %>%
+    dplyr::arrange()
+}
+
+
 #' Add gene position to the FastQTL expression matrix
 #' 
 #' @param matrix expression matrix
@@ -146,6 +175,29 @@ fastqtlTabixFetchGenesQuick <- function(gene_ids, tabix_file, gene_metadata, cis
   }
   tabix_data = fastqtlTabixFetchGenes(gene_ranges, tabix_file)
   return(tabix_data)
+}
+
+
+#' Import QTLtools output table from permutation run into R.
+#'
+#' 
+#' @param file_path Path to the QTLtools output file.
+#' @return data_frame containing gene_ids, snp ids and p-values.
+#' @author Kaur Alasoo
+#' @export 
+importQTLtoolsTable <- function(file_path){
+  col_names = c("group_id", "chr", "start", "end", "strand", "phenotype_id", "group_size", "n_cis_snps", 
+                "distance", "snp_id", "snp_chr", "snp_start", "snp_end", "df", "dummy", "beta1", 
+                "beta2", "p_nominal","slope","p_perm","p_beta")
+  col_types = "cciicciiicciiiddddddd"
+  table = readr::read_delim(file_path, col_names = col_names, delim = " ", col_types = col_types) %>%
+    dplyr::filter(!is.na(p_beta)) %>%
+    dplyr::mutate(p_bonferroni = p_nominal*group_size*n_cis_snps) %>%
+    dplyr::mutate(p_bonferroni = pmin(p_bonferroni,1)) %>%
+    dplyr::mutate(p_fdr = p.adjust(p_beta, method = "fdr")) %>%
+    dplyr::mutate(qvalue = qvalue::qvalue(p_beta)$qvalues) %>%
+    dplyr::arrange(p_fdr)
+  return(table)
 }
   
   
