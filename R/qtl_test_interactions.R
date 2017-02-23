@@ -180,6 +180,12 @@ testInteractionLme4 <- function(gene_id, snp_id, trait_matrix, sample_metadata, 
 testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf_file, qtl_formula, 
                                      interaction_formula, return_value = "ponly", id_field_separator = ";",
                                      lme4 = FALSE){
+  
+  #Filter the VCF file for quicker testing
+  genotypes = vcf_file$genotypes[unique(snps_df$snp_id),]
+  snps_pos = dplyr::filter(vcf_file$snpspos, snpid %in% rownames(genotypes))
+  filtered_vcf = list(snpspos = snps_pos, genotypes = genotypes)
+  
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
   for(i in 1:nrow(snps_df)){
@@ -187,9 +193,9 @@ testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf
     snp_id = snps_df[i,]$snp_id
     print(gene_id)
     if (lme4 == TRUE){
-      test = testInteractionLme4(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
+      test = testInteractionLme4(gene_id, snp_id, trait_matrix, sample_metadata, filtered_vcf, qtl_formula, interaction_formula, return_value)
     } else{
-      test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file, qtl_formula, interaction_formula, return_value)
+      test = testInteraction(gene_id, snp_id, trait_matrix, sample_metadata, filtered_vcf, qtl_formula, interaction_formula, return_value)
     }
     result[[paste(gene_id,snp_id, sep = id_field_separator)]] = test
   }
