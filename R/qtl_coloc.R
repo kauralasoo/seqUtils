@@ -259,14 +259,34 @@ makeColocPlot <- function(data_list){
   return(plot)
 }
 
+
+#' Perform a quick pre-filtering between QTLs and GWAS hits to reduce the number of coloc tests
+#'
+#' @param qtl_min_pvalues List of data frames with QTL lead pvalues. Each data frame must contain
+#' gene_id, snp_id and p_fdr and should not contain other columns.
+#' @param gwas_prefix Prefix of the GWAS summarystats file
+#' @param GRCh37_variants QTL variant information in GWAS coordinates.
+#' @param fdr_thresh Minimal QTL FDR threshold
+#' @param overlap_dist Max distance between GWAS and QTL variants.
+#' @param gwas_thresh Minimal GWAS p-value threshold
+#'
+#' @return List of data.frames with gene_ids and snp_ids to be tested with coloc.
+#' @export
 prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, 
                                      fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
+  
+  #Make sure that the qtl_df has neccessary columns
+  assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "gene_id"))
+  assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "snp_id"))
+  assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "p_fdr"))
+  assertthat::assert_that(ncol(qtl_min_pvalues[[1]]) == 3)
+  
   
   #Import top GWAS p-values
   gwas_pvals = importGWASSummary(paste0(gwas_prefix,".top_hits.txt.gz")) %>%
     dplyr::filter(p_nominal < gwas_thresh) %>%
     dplyr::transmute(chr = chr, gwas_pos = pos)
-  
+
   #Filter lead variants
   qtl_hits = purrr::map(qtl_min_pvalues, ~dplyr::filter(., p_fdr < fdr_thresh))
   lead_variants = purrr::map_df(qtl_hits, identity) %>% unique()
@@ -276,7 +296,7 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
   #Add GRCh37 coordinates
   qtl_pos = purrr::map(qtl_hits, ~dplyr::left_join(., selected_variants, by = "snp_id") %>%
                          dplyr::filter(!is.na(pos)))
-  
+
   #Identify genes that have associated variants nearby (ignoring LD)
   qtl_df_list = purrr::map(qtl_pos, ~dplyr::left_join(., gwas_pvals, by = "chr") %>%
                              dplyr::mutate(distance = abs(gwas_pos - pos)) %>%

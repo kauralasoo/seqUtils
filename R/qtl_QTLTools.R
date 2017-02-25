@@ -35,7 +35,7 @@ prepareQTLtoolsMatrix <- function(matrix, genepos){
 #' @author Kaur Alasoo
 #' @export 
 importQTLtoolsTable <- function(file_path){
-  col_names = c("group_id", "chr", "start", "end", "strand", "phenotype_id", "group_size", "n_cis_snps", 
+  col_names = c("group_id", "pheno_chr", "pheno_start", "pheno_end", "strand", "phenotype_id", "group_size", "n_cis_snps", 
                 "distance", "snp_id", "snp_chr", "snp_start", "snp_end", "df", "dummy", "beta1", 
                 "beta2", "p_nominal","slope","p_perm","p_beta")
   col_types = "cciicciiicciiiddddddd"
@@ -56,7 +56,7 @@ importQTLtoolsTable <- function(file_path){
 #'
 #' @return List of data frames containing QTLtools results for each gene.
 #' @export
-qtltoolsTabixFetchGenes <- function(gene_ranges, tabix_file){
+qtltoolsTabixFetchPhenotypes <- function(phenotype_ranges, tabix_file){
   #Set column names for rasqual
   fastqtl_columns = c("phenotype_id","pheno_chr","pheno_start", "pheno_end",
                       "strand","n_snps", "distance", "snp_id", "snp_chr",
@@ -64,15 +64,17 @@ qtltoolsTabixFetchGenes <- function(gene_ranges, tabix_file){
   fastqtl_coltypes = "cciiciicciiddi"
   
   result = list()
-  for (i in seq_along(gene_ranges)){
-    selected_gene_id = gene_ranges[i]$gene_id
+  for (i in seq_along(phenotype_ranges)){
+    selected_phenotype_id = phenotype_ranges[i]$phenotype_id
     print(i)
-    tabix_table = scanTabixDataFrame(tabix_file, gene_ranges[i], col_names = fastqtl_columns, col_types = fastqtl_coltypes)[[1]] %>%
-      dplyr::filter(gene_id == selected_gene_id)
+    tabix_table = scanTabixDataFrame(tabix_file, phenotype_ranges[i], 
+                                     col_names = fastqtl_columns, col_types = fastqtl_coltypes)[[1]] %>%
+      dplyr::filter(phenotype_id == selected_phenotype_id)
     
     #Add additional columns
-    result[[selected_gene_id]] = tabix_table
+    result[[selected_phenotype_id]] = tabix_table
   }
   return(result)
 }
+
 
