@@ -9,4 +9,3 @@ conditionPalette()
 \description{
 Colour plaette of four colours to represent experimental conditions
 }
-

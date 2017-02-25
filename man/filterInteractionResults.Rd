@@ -22,4 +22,3 @@ Data frame augmented with Rasqual effect sizes and p-values in each condition.
 \description{
 Filter QTL interaction test results based on RASQUAL effect size
 }
-

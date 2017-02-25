@@ -16,4 +16,3 @@ quantifyMultipleMotifs(peak_id, snp_id, pwm_list, peak_metadata, peak_sequences,
 \description{
 Converts the output into a data frame and performs some basic filtering
 }
-

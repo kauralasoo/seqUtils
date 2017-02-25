@@ -37,4 +37,3 @@ and then runs MatrixeQTL on the data.
 \author{
 Kaur Alasoo
 }
-

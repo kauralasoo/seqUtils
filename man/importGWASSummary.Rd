@@ -9,4 +9,3 @@ importGWASSummary(summary_path)
 \description{
 Import full GWAS summary stats file
 }
-

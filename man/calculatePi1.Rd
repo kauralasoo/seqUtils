@@ -22,4 +22,3 @@ Currently expects the following columns: gene_id, qvalue and p_beta.
 \author{
 Kaur Alasoo
 }
-

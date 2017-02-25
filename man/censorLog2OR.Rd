@@ -19,4 +19,3 @@ Modified or_df with censored values
 \description{
 Censor log2 odds ratios and their confidence intervals for easier plotting
 }
-

@@ -16,4 +16,3 @@ GRanges object construct from df.
 Seqnames, strand, start and end columns are used as corresponding elements 
 in the GRanges object. Remaining columns are added into the elementMetadata data frame.
 }
-

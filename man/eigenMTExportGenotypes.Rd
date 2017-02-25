@@ -17,4 +17,3 @@ eigenMTExportGenotypes(vcf_file, eigenMT_dir, prefix)
 Creates two text files in the eigenMT_dir directory: [prefix].snp_positions.txt and 
  [prefix].genotypes.txt.
 }
-

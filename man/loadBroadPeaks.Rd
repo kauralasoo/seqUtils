@@ -27,4 +27,3 @@ Based on rtracklayer::import.bed, but adds additional columns present only in br
 \author{
 Kaur Alasoo
 }
-

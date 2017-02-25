@@ -17,4 +17,3 @@ List of data frames containing Rasqual results for each gene.
 \description{
 Fetch particular genes from tabix indexed FastQTL output file.
 }
-

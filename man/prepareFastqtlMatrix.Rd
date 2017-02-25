@@ -20,4 +20,3 @@ Add gene position to the FastQTL expression matrix
 \author{
 Kaur Alasoo
 }
-

@@ -18,4 +18,3 @@ Only gene-SNP pairs with minimal p-values,
 Group QTL matrix by gene, sort by p_nominal, keep SNP with smalles p-value,
 Correct that using bonferroni correction and then apply FDR correction across genes.
 }
-

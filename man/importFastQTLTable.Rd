@@ -18,4 +18,3 @@ Detect if the table is from nominal run or permutation run and add proper column
 \author{
 Kaur Alasoo
 }
-

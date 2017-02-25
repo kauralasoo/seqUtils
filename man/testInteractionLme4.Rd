@@ -28,4 +28,3 @@ Either a pvalue (if return_value == "ponly") or the full linear model object.
 \description{
 Test for interaction between genotype and condition using ANOVA and lme4
 }
-

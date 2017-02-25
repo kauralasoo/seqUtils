@@ -19,4 +19,3 @@ GRanges
 \description{
 Construct a GRanges obejct corresponding to a cis region around one variant.
 }
-

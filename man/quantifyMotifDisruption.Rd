@@ -28,4 +28,3 @@ Data frame of binding socres for the reference and alternate versions of the seq
 \description{
 Estimate how much PWM binding score is altered by the SNP
 }
-

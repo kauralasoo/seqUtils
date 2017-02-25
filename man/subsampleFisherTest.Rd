@@ -21,4 +21,3 @@ data frame with p-value, OR and confidence intervals
 \description{
 Return a tidy data frame with results (p-value, OR, confidence intervals and their log2 coversions)
 }
-

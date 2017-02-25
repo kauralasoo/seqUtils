@@ -15,4 +15,3 @@ Data frame of eigenMT corrected p-values
 \description{
 Also performs FDR correction
 }
-

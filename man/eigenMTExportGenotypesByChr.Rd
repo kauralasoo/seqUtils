@@ -19,4 +19,3 @@ eigenMTExportGenotypesByChr(chromosomes, gds_dir, eigenMT_dir,
 \description{
 Convert chromosome-wise .gds files into genotype matrices suitable for eigenMT
 }
-

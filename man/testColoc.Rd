@@ -30,4 +30,3 @@ List of colocalisation results (Same as coloc.abf).
 Group QTL database by gene, sort by p_nominal, keep SNP with smallest p-value,
 correct that using bonferroni correction and then apply FDR correction across genes.
 }
-

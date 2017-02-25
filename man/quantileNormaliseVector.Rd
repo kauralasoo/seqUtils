@@ -15,4 +15,3 @@ Vector with a standard normal distribution
 \description{
 Force a vector of values into standard normal distribution
 }
-

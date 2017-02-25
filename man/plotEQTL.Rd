@@ -31,4 +31,3 @@ Plots are faceted by condition_name column in sample_metadata.
 \author{
 Kaur Alasoo
 }
-

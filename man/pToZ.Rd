@@ -17,4 +17,3 @@ data frame of z-scores
 \description{
 Convert FastQTL p-values into a data frame of z-scores
 }
-

@@ -29,4 +29,3 @@ If TRUE, then only p-value is returned, otherwise returns a list of model data a
 The two features (master and dependent) are assumed to be regulated by the same 
 causal genetic variant.
 }
-

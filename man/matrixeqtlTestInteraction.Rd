@@ -25,4 +25,3 @@ Tidy table with interaction testing results
 \description{
 Use MatrixEQTL to test interaction between genotype and two conditions
 }
-

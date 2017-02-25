@@ -9,4 +9,3 @@ tbl_df2(dataframe)
 \description{
 Convert bioconductor DataFrame object into tibble
 }
-

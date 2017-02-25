@@ -32,4 +32,3 @@ Based on Supplementary Figure S16 in (Kumasaka et al 2015).
 \author{
 Kaur Alasoo
 }
-

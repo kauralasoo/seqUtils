@@ -22,4 +22,3 @@ report the proportion of variance explained by each component.
 \author{
 Kaur Alasoo
 }
-

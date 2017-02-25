@@ -25,4 +25,3 @@ data frame with GWAS and QTL overlaps
 \description{
 Find GWAS variants that are in high LD with QTL variants
 }
-

@@ -23,4 +23,3 @@ P-value cutoff corresponding to the desired FDR
 \description{
 Author: Natsuhiko Kumasaka
 }
-

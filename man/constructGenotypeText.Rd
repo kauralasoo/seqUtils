@@ -9,4 +9,3 @@ constructGenotypeText(snp_id, variant_information)
 \description{
 Construct matching between minor allele count and genotype text
 }
-

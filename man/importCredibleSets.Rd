@@ -9,4 +9,3 @@ importCredibleSets(credible_set_path, peak_metadata)
 \description{
 Import credible sets from disk and add overlapping peaks to each QTL
 }
-

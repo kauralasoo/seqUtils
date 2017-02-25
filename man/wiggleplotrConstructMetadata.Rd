@@ -23,4 +23,3 @@ Wiggleplotr metadata data frame
 \description{
 Construct metadata data frame for wiggleplotr
 }
-

@@ -18,4 +18,3 @@ Convert named vector into a tidy data_frame.
 \author{
 Kaur Alasoo
 }
-

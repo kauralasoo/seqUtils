@@ -17,4 +17,3 @@ Data frame of QTLs
 \description{
 Multiple variants per gene are sorted by p-value
 }
-

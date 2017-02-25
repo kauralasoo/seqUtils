@@ -9,4 +9,3 @@ importVariantInformation(path)
 \description{
 Import variant information extracted from VCF file into R
 }
-

@@ -18,4 +18,3 @@ Original data frame with one additional column containing posterior probabilitie
 \description{
 Calculate posterior probabilities from association summary stats
 }
-

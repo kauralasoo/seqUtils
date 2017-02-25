@@ -18,4 +18,3 @@ Filtered SummarizedExperiment
 \description{
 Extract samples from SummarizedExperiment based on condition_name column in metadata.
 }
-

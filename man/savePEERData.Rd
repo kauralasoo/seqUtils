@@ -16,4 +16,3 @@ savePEERData(expression_list, outdir, file_suffix = "exprs")
 \description{
 Save list of expression matrices in a format suitable for runPEER.py
 }
-

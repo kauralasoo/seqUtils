@@ -23,4 +23,3 @@ Quantile normalize read counts while correcting for feature length and GC counte
 \author{
 Kaur Alasoo
 }
-

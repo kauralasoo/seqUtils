@@ -20,4 +20,3 @@ List of data_frames, one for each entry in the param GRanges object.
 \description{
 A general function to quickly import tabix indexed tab-separated files into data_frame
 }
-

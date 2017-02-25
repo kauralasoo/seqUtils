@@ -17,4 +17,3 @@ matrix of pearson correlaton between genotypes
 \description{
 Calculate LD matrix based on a data frame of z-scores and genotypes
 }
-

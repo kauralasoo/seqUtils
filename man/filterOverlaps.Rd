@@ -21,4 +21,3 @@ For each set of peak calls, find the ones that are present in at least minOverla
 \author{
 Kaur Alasoo
 }
-

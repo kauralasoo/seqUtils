@@ -18,4 +18,3 @@ contain at least the following elements: 'counts' matrix, 'sample_metadata' df,}
 \description{
 Write multiple files for RASQUAL onto disk.
 }
-

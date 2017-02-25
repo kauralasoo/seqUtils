@@ -19,4 +19,3 @@ variant positions and matrix of allele dosage (0,1,2)
 \author{
 Kaur Alasoo
 }
-

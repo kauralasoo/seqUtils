@@ -21,4 +21,3 @@ Covariates matrix suitable for matrixEQTL.
 \description{
 Convert sample_metadata into a covariates matrix suitable for matrixEQTL
 }
-

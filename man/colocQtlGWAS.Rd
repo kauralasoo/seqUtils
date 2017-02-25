@@ -19,4 +19,3 @@ coloc.abf result object
 \description{
 Test colocalisation between molecular QTL and GWAS summary stats
 }
-

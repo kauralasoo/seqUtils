@@ -22,4 +22,3 @@ Read count matrix where entries have been TPM normalized.
 \description{
 Normalise counts matrix using transcripts per million (TPM) normalisation
 }
-

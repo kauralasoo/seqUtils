@@ -23,4 +23,3 @@ Works with expression and covariates matrices.
 \author{
 Kaur Alasoo
 }
-

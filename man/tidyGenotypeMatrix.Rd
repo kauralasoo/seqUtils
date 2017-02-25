@@ -20,4 +20,3 @@ Tidy data frame with one genotype per row.
 \description{
 Convert genotype matrix from gdsToMatrix into a tidy data frame
 }
-

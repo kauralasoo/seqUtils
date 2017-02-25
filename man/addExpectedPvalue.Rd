@@ -15,4 +15,3 @@ pvalue_df with p_expected column
 \description{
 Add expected p-value for Q-Q plots
 }
-

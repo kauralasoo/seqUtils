@@ -20,4 +20,3 @@ Given a total number of elements n and batch_size, contruct a vector of length n
 \examples{
 splitIntoBatches(11,3)
 }
-

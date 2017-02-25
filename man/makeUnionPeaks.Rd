@@ -9,4 +9,3 @@ makeUnionPeaks(peak_list, seqlevels, id_prefix)
 \description{
 Construct the union of list of peak calls and add gene_id and type metadata columns for read counting.
 }
-

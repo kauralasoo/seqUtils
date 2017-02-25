@@ -24,4 +24,3 @@ File name is extracted automatically from the plot title.
 \author{
 Kaur Alasoo
 }
-

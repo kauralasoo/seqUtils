@@ -19,4 +19,3 @@ Credible set with ATAC peak annotations
 \description{
 Add ATAC peak annotations to the eQTL credible set
 }
-

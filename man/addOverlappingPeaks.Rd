@@ -21,4 +21,3 @@ Modifed qtl_credible_set data frame with added overlap_peak_id column.
 \description{
 Add overlapping ATAC peaks to a credible set of QTL variants
 }
-

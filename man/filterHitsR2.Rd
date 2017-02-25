@@ -20,4 +20,3 @@ Filtered feature_snp_pairs that does not cotain highly correlated SNPs for singl
 Identify genes that have two different lead SNPs and remove one of them if 
 the R2 between the two SNPs is greater than R2_thresh.
 }
-

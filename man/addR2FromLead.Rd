@@ -18,4 +18,3 @@ gene_df data frame with R2 column added.
 Assumes that lead SNP is in the first row of the gene_df data frame 
 (data frame is sorted by p-value).
 }
-

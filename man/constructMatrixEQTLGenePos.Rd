@@ -15,4 +15,3 @@ Gene postion data frame for matrixEQTL.
 \description{
 Convert gene_metadata table into a gene positions data frame suitable for MatrixEQTL.
 }
-

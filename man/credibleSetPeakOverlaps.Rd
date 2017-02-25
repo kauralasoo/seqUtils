@@ -9,4 +9,3 @@ credibleSetPeakOverlaps(credible_sets_df)
 \description{
 Identify all peak-peak pairs linked by credible sets
 }
-

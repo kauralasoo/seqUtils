@@ -18,4 +18,3 @@ Construct gene position data.frame suitable for FastQTL
 \author{
 Kaur Alasoo
 }
-

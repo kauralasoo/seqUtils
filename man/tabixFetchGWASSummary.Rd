@@ -9,4 +9,3 @@ tabixFetchGWASSummary(granges, summary_path)
 \description{
 Import a specific region from a tabix-indexed GWAS summary stats file
 }
-

@@ -17,4 +17,3 @@ ASE data frame that contains genotypes for each individual for each feature snp 
 \description{
 Title Add genotype data to tidy ASE data frame.
 }
-

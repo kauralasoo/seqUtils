@@ -9,4 +9,3 @@ rankAtacSummaries(atac_beta_summaries, joint_effects, rank_by)
 \description{
 Add gene_id and gene_name to atac hits and rank them by "rank_by" column
 }
-

@@ -22,4 +22,3 @@ Data frame with relative enrichment of each motif inf the foreground set compare
 \description{
 Calculate relative motif enrichment in foreground set of peaks compared to a specifed background.
 }
-

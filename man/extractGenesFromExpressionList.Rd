@@ -17,4 +17,3 @@ Filtered expression list that only contains genes from gene_ids.
 \description{
 Extract a subset of genes from expression list
 }
-

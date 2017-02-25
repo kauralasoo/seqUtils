@@ -26,4 +26,3 @@ Skips the first comment line.
 \author{
 Kaur Alasoo
 }
-

@@ -9,4 +9,3 @@ tibbleToNamedMatrix(tibble, row_names = "transcript_id")
 \description{
 Convert a data frame with an id column into a matrix with row names
 }
-

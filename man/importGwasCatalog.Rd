@@ -19,4 +19,3 @@ INITIAL SAMPLE DESCRIPTION field and also flags each study that contains Europea
 \author{
 Kaur Alasoo
 }
-

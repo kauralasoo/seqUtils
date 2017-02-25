@@ -9,4 +9,3 @@ identifyAmbiguousMasters(shared_credible_sets, master_peak_list)
 \description{
 Identify master peaks that share credible sets with each other
 }
-

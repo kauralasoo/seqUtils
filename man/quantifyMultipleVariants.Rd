@@ -13,4 +13,3 @@ quantifyMultipleVariants(peak_snp_list, motif_list, peak_metadata,
 \description{
 Applies quantifyMultipleMotifs to a data frame of peak and snp ids
 }
-

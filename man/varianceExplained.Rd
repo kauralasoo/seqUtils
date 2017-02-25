@@ -9,4 +9,3 @@ varianceExplained(lmer_model)
 \description{
 Calculate the proportion of variance explaned by different factors in a lme4 model
 }
-

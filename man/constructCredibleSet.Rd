@@ -17,4 +17,3 @@ Dataset that only contains the credible set of associated SNPs.
 \description{
 Construct the credible set of associated SNPs for each gene.
 }
-

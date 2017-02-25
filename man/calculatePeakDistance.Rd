@@ -17,4 +17,3 @@ peak_df with dependent_centre, master_centre and distance column added.
 \description{
 Caclulate distance between the centres of peak pairs
 }
-

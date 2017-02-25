@@ -16,4 +16,3 @@ data_frame
 Skipped gene-SNP pairs are automatically removed and 
 chisq statistic is converted into p-value (p_nominal).
 }
-
