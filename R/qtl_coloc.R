@@ -150,13 +150,26 @@ summaryReplaceSnpId <- function(summary_df, variant_information){
 
 #' Test colocalisation between molecular QTL and GWAS summary stats
 #'
-#' @param qtl QTL summary stats (p_nominal, MAF, neta, snp_id)
-#' @param gwas GWAS summary stats(beta, se, MAF)
+#' @param qtl QTL summary stats (p_nominal, MAF, beta, snp_id)
+#' @param gwas GWAS summary stats(beta, se, MAF, log_OR)
 #' @param N_qtl Sample size of the QTL mapping study
 #'
 #' @return coloc.abf result object
 #' @export
 colocQtlGWAS <- function(qtl, gwas, N_qtl){
+  
+  #Check that QTL df has all correct names
+  assertthat::assert_that(assertthat::has_name(qtl, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(qtl, "beta"))
+  assertthat::assert_that(assertthat::has_name(qtl, "MAF"))
+  assertthat::assert_that(assertthat::has_name(qtl, "p_nominal"))
+  
+  #Check that GWAS df has all correct names
+  assertthat::assert_that(assertthat::has_name(gwas, "beta"))
+  assertthat::assert_that(assertthat::has_name(gwas, "se"))
+  assertthat::assert_that(assertthat::has_name(gwas, "snp_id"))
+  assertthat::assert_that(assertthat::has_name(gwas, "log_OR"))
+  assertthat::assert_that(assertthat::has_name(gwas, "MAF"))
   
   #Count NAs for log_OR and beta
   log_OR_NA_count = length(which(is.na(gwas$log_OR)))
@@ -199,13 +212,24 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
                                GRCh37_variants, GRCh38_variants,
                                N_qtl = 84, cis_dist = 1e5){
   
+  #Assertions
+  assertthat::assert_that(assertthat::has_name(qtl_df, "phenotype_id"))
+  assertthat::assert_that(assertthat::has_name(qtl_df, "snp_id"))
+  assertthat::assert_that(nrow(qtl_df) == 1)
+  
+  assertthat::assert_that(is.numeric(cis_dist))
+  assertthat::assert_that(is.numeric(N_qtl))
+  
+  
   result = tryCatch({
     #Make GRanges object to fetch data
     qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = cis_dist)
     gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = cis_dist)
     
     #Fetch QTL summary stats
-    qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    #qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    qtl_summaries = qtltoolsTabixFetchPhenotypes(qtl_ranges, qtl_summary_path)[[1]] %>%
+      dplyr::transmute(snp_id, chr = snp_chr, pos = snp_start, p_nominal, beta)
 
     #Fetch GWAS summary stats
     gwas_summaries = tabixFetchGWASSummary(gwas_ranges, gwas_summary_path)[[1]]
@@ -270,13 +294,13 @@ makeColocPlot <- function(data_list){
 #' @param overlap_dist Max distance between GWAS and QTL variants.
 #' @param gwas_thresh Minimal GWAS p-value threshold
 #'
-#' @return List of data.frames with gene_ids and snp_ids to be tested with coloc.
+#' @return List of data.frames with phenotype_ids and snp_ids to be tested with coloc.
 #' @export
 prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, 
                                      fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
   
   #Make sure that the qtl_df has neccessary columns
-  assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "gene_id"))
+  assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "phenotype_id"))
   assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "snp_id"))
   assertthat::assert_that(assertthat::has_name(qtl_min_pvalues[[1]], "p_fdr"))
   assertthat::assert_that(ncol(qtl_min_pvalues[[1]]) == 3)
@@ -301,7 +325,7 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
   qtl_df_list = purrr::map(qtl_pos, ~dplyr::left_join(., gwas_pvals, by = "chr") %>%
                              dplyr::mutate(distance = abs(gwas_pos - pos)) %>%
                              dplyr::filter(distance < overlap_dist) %>%
-                             dplyr::select(gene_id, snp_id) %>% unique())
+                             dplyr::select(phenotype_id, snp_id) %>% unique())
   
 }
 
