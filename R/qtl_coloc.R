@@ -210,7 +210,7 @@ colocQtlGWAS <- function(qtl, gwas, N_qtl){
 
 colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path, 
                                GRCh37_variants, GRCh38_variants,
-                               N_qtl = 84, cis_dist = 1e5){
+                               N_qtl = 84, cis_dist = 1e5, QTLTools = TRUE){
   
   #Assertions
   assertthat::assert_that(assertthat::has_name(qtl_df, "phenotype_id"))
@@ -225,11 +225,14 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
     #Make GRanges object to fetch data
     qtl_ranges = constructVariantRanges(qtl_df, GRCh38_variants, cis_dist = cis_dist)
     gwas_ranges = constructVariantRanges(qtl_df, GRCh37_variants, cis_dist = cis_dist)
-    
+
     #Fetch QTL summary stats
-    #qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
-    qtl_summaries = qtltoolsTabixFetchPhenotypes(qtl_ranges, qtl_summary_path)[[1]] %>%
-      dplyr::transmute(snp_id, chr = snp_chr, pos = snp_start, p_nominal, beta)
+    if(QTLTools){
+      qtl_summaries = qtltoolsTabixFetchPhenotypes(qtl_ranges, qtl_summary_path)[[1]] %>%
+        dplyr::transmute(snp_id, chr = snp_chr, pos = snp_start, p_nominal, beta)
+    } else{
+      qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
+    }
 
     #Fetch GWAS summary stats
     gwas_summaries = tabixFetchGWASSummary(gwas_ranges, gwas_summary_path)[[1]]
