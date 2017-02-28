@@ -59,8 +59,8 @@ importQTLtoolsTable <- function(file_path){
 qtltoolsTabixFetchPhenotypes <- function(phenotype_ranges, tabix_file){
   
   #Assertions about input
-  assertthat::assert_that(class(lead_ranges) == "GRanges")
-  assertthat::assert_that(assertthat::has_name(GenomicRanges::elementMetadata(lead_ranges), "phenotype_id"))
+  assertthat::assert_that(class(phenotype_ranges) == "GRanges")
+  assertthat::assert_that(assertthat::has_name(GenomicRanges::elementMetadata(phenotype_ranges), "phenotype_id"))
   
   #Set column names for rasqual
   fastqtl_columns = c("phenotype_id","pheno_chr","pheno_start", "pheno_end",
