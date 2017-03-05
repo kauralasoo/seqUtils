@@ -60,7 +60,7 @@ importAndFilterColocHits <- function(gwas_stats, coloc_suffix = ".eQTL.1e+05.col
 
 
 importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir, 
-                                       qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5, use_rasqual = FALSE){
+                                       qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5, QTLTools = FALSE){
   
   assertthat::assert_that(assertthat::has_name(qtl_df, "phenotype_id"))
   assertthat::assert_that(assertthat::has_name(qtl_df, "snp_id"))
@@ -85,14 +85,14 @@ importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir,
     dplyr::transmute(condition_name = trait_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
   
   #Fetch QTL summary stats
-  if(use_rasqual){
-    qtl_fetch_function = rasqualTools::tabixFetchGenes
+  if(QTLTools){
+    qtl_summaries = purrr::map_df(qtl_paths, ~qtltoolsTabixFetchPhenotypes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
+      dplyr::transmute(condition_name, snp_id, chr = snp_chr, pos = snp_start, p_nominal, log10p = -log(p_nominal, 10))
   } else{
-    qtl_fetch_function = fastqtlTabixFetchGenes
+    qtl_summaries = purrr::map_df(qtl_paths, ~fastqtlTabixFetchGenes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
+      dplyr::transmute(condition_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
   }
-  qtl_summaries = purrr::map_df(qtl_paths, ~qtl_fetch_function(qtl_ranges, .)[[1]], .id = "condition_name") %>%
-    dplyr::transmute(condition_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
-  
+
   #Merge data
   full_data = dplyr::bind_rows(gwas_summaries, qtl_summaries) %>% 
     dplyr::mutate(condition_name = factor(condition_name, levels = c(trait_name, names(qtl_paths))))
@@ -100,5 +100,16 @@ importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir,
   return(full_data)
   
 }
+
+#Functions
+plotColoc <- function(df, plot_title){
+  plot = ggplot(df, aes(x = pos, y = log10p)) + 
+    geom_point() + 
+    facet_grid(condition_name~.) +
+    labs(title = plot_title) + 
+    theme_light()
+  return(plot)
+}
+
 
 
