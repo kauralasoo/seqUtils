@@ -68,6 +68,22 @@ betaCorrectSign <- function(beta_df){
   return(beta_correct_sign)
 }
 
+#Flip the sign of the beta so that the maximal beta is positive
+betaCorrectSignPairs <- function(beta_df){
+  #Calculate the sign for the maximal effect size
+  max_sign = dplyr::group_by(beta_df, gene_id, peak_id, snp_id) %>% 
+    dplyr::arrange(-abs(beta)) %>% 
+    dplyr::filter(row_number() == 1) %>%
+    dplyr::mutate(max_sign = sign(beta)) %>% 
+    dplyr::select(gene_id, peak_id, snp_id, max_sign)
+
+  #Flip the sign of all of the effect sizes
+  beta_correct_sign = dplyr::left_join(beta_df, max_sign, by = c("gene_id","peak_id", "snp_id")) %>%
+    dplyr::arrange(gene_id, peak_id, snp_id) %>% 
+    dplyr::mutate(beta = beta*max_sign)
+  return(beta_correct_sign)
+}
+
 extractAndProcessBetas <- function(gene_snp_pairs, rasqual_results_list, baseline_column = "naive"){
   #Extract effect sizes for all gene-snp pairs from RASQUAL data
   beta_matrix = extractBetasFromList(gene_snp_pairs, rasqual_results_list) %>% dplyr::ungroup()
@@ -158,4 +174,36 @@ prepareBetasDf <- function(rna_qtls_df, rna_betas, atac_rasqual_list,
   return(joint_betas)
 }
 
+extractBetasForQTLPairs <- function(pairs_df, rna_selected_pvalues, atac_selected_pvalues){
+  
+  assertthat::assert_that(assertthat::has_name(pairs_df, "gene_id"))
+  assertthat::assert_that(assertthat::has_name(pairs_df, "peak_id"))
+  assertthat::assert_that(assertthat::has_name(pairs_df, "snp_id"))
+  
+  #Extract betas
+  rna_betas = extractBetasFromList(dplyr::select(pairs_df, gene_id, snp_id), rna_selected_pvalues) %>% 
+    tidyr::gather(condition_name, beta, naive:IFNg_SL1344) %>%
+    dplyr::left_join(pairs_df, by = c("gene_id", "snp_id")) %>%
+    dplyr::mutate(phenotype = "RNA") %>%
+    dplyr::select(gene_id, peak_id, snp_id, condition_name, phenotype, beta) %>%
+    dplyr::filter(!is.na(beta)) %>%
+    unique()
+  atac_betas = extractBetasFromList(dplyr::transmute(pairs_df, gene_id = peak_id, snp_id), atac_selected_pvalues) %>%
+    tidyr::gather(condition_name, beta, naive:IFNg_SL1344) %>%
+    dplyr::rename(peak_id = gene_id) %>%
+    dplyr::left_join(pairs_df, by = c("peak_id", "snp_id")) %>%
+    dplyr::mutate(phenotype = "ATAC") %>%
+    dplyr::select(gene_id, peak_id, snp_id, condition_name, phenotype, beta) %>%
+    dplyr::filter(!is.na(beta)) %>%
+    unique()
+
+  #Remove pairs that have missing effect size values
+  joint_genes = intersect(rna_betas$gene_id, atac_betas$gene_id)
+  atac_betas = dplyr::filter(atac_betas, gene_id %in% joint_genes)
+  rna_betas = dplyr::filter(rna_betas, gene_id %in% joint_genes)
+  
+  #Join and return
+  joint_betas = dplyr::bind_rows(rna_betas, atac_betas)
+  return(joint_betas)
+}
 
