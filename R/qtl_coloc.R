@@ -358,8 +358,10 @@ colocGeneAgainstPeaks <- function(gene_df, peaks_df, eqtl_summaries, caqtl_summa
                                       summaryReplaceSnpId(variant_information)) 
 
   #Perform coloc
-  coloc_res_df = purrr::map(caqtl_summaries_list, 
-                            ~testColoc(eqtl_summaries, ., n1 = n_eqtl, n2 = n_caqtl)$summary) %>%
+  coloc_res = purrr::map(caqtl_summaries_list, 
+                            ~testColoc(eqtl_summaries, ., n1 = n_eqtl, n2 = n_caqtl)$summary)
+  coloc_res_filtered = coloc_res[!purrr::map_lgl(coloc_res, is.null)]#Remove NULL entries from list
+  coloc_res_df = coloc_res_filtered %>%
     purrr::map_df(., ~dplyr::tbl_df(t(.)), .id = "peak_id") %>%
     dplyr::mutate(gene_id = gene_df$phenotype_id) %>%
     dplyr::select(gene_id, everything())
