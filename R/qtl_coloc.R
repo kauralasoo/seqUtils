@@ -340,6 +340,7 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
 
 colocGeneAgainstPeaks <- function(gene_df, peaks_df, eqtl_summaries, caqtl_summaries, 
                                   n_eqtl, n_caqtl, variant_information, cis_dist = 2e5){
+  print(gene_df$phenotype_id)
   
   #Construct gene ranges
   eqtl_ranges = constructVariantRanges(gene_df, variant_information, cis_dist = cis_dist)
