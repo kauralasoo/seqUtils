@@ -342,30 +342,35 @@ colocGeneAgainstPeaks <- function(gene_df, peaks_df, eqtl_summaries, caqtl_summa
                                   n_eqtl, n_caqtl, variant_information, cis_dist = 2e5){
   print(gene_df$phenotype_id)
   
-  #Construct gene ranges
-  eqtl_ranges = constructVariantRanges(gene_df, variant_information, cis_dist = cis_dist)
-  
-  #Fetch summary stats
-  eqtl_summaries = fastqtlTabixFetchGenes(eqtl_ranges, eqtl_summaries)[[1]] %>%
+  coloc_res_df = tryCatch({
+    #Construct gene ranges
+    eqtl_ranges = constructVariantRanges(gene_df, variant_information, cis_dist = cis_dist)
+    
+    #Fetch summary stats
+    eqtl_summaries = fastqtlTabixFetchGenes(eqtl_ranges, eqtl_summaries)[[1]] %>%
     summaryReplaceSnpId(variant_information)
-  
-  #Construct peak ranges
-  peak_ranges =  purrr::by_row(peaks_df, 
-                               function(x, eqtl_ranges){eqtl_ranges$phenotype_id = x$peak_id; return(eqtl_ranges)}, eqtl_ranges)
-  peak_ranges_list = setNames(peak_ranges$.out, peak_ranges$peak_id)
-  
-  #Fetch peak summaries
-  caqtl_summaries_list = purrr::map(peak_ranges_list, ~fastqtlTabixFetchGenes(., caqtl_summaries)[[1]] %>%
-                                      summaryReplaceSnpId(variant_information)) 
 
-  #Perform coloc
-  coloc_res = purrr::map(caqtl_summaries_list, 
-                            ~testColoc(eqtl_summaries, ., n1 = n_eqtl, n2 = n_caqtl)$summary)
-  coloc_res_filtered = coloc_res[!purrr::map_lgl(coloc_res, is.null)]#Remove NULL entries from list
-  coloc_res_df = coloc_res_filtered %>%
-    purrr::map_df(., ~dplyr::tbl_df(t(.)), .id = "peak_id") %>%
-    dplyr::mutate(gene_id = gene_df$phenotype_id) %>%
-    dplyr::select(gene_id, everything())
-  
+    #Construct peak ranges
+    peak_ranges =  purrr::by_row(peaks_df, 
+                                 function(x, eqtl_ranges){eqtl_ranges$phenotype_id = x$peak_id; return(eqtl_ranges)}, eqtl_ranges)
+    peak_ranges_list = setNames(peak_ranges$.out, peak_ranges$peak_id)
+
+    #Fetch peak summaries
+    caqtl_summaries_list = purrr::map(peak_ranges_list, ~fastqtlTabixFetchGenes(., caqtl_summaries)[[1]] %>%
+                                        summaryReplaceSnpId(variant_information)) 
+    
+    #Perform coloc
+    coloc_res = purrr::map(caqtl_summaries_list, 
+                           ~testColoc(eqtl_summaries, ., n1 = n_eqtl, n2 = n_caqtl)$summary)
+    coloc_res_filtered = coloc_res[!purrr::map_lgl(coloc_res, is.null)]#Remove NULL entries from list
+    coloc_res_df = coloc_res_filtered %>%
+      purrr::map_df(., ~dplyr::tbl_df(t(.)), .id = "peak_id") %>%
+      dplyr::mutate(gene_id = gene_df$phenotype_id) %>%
+      dplyr::select(gene_id, everything())
+  }, error = function(err) {
+    print(paste("ERROR:",err))
+    coloc_res_df = NULL
+  }
+  )
   return(coloc_res_df)
 }
