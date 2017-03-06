@@ -18,13 +18,19 @@
 testColoc <- function(df1, df2, n1, n2, p1 = 1e-4, p2 = 1e-4, p12 = 1e-5){
   
   #Test for colocalisation between two sets of p-values
-  result = coloc::coloc.abf(dataset1 = list(pvalues = df1$p_nominal, N = n1, 
+  result = tryCatch({
+    result = coloc::coloc.abf(dataset1 = list(pvalues = df1$p_nominal, N = n1, 
                                             beta = df1$beta, MAF = df1$MAF, 
                                             snp = df1$snp_id, type = "quant"), 
                             dataset2 = list(pvalues = df2$p_nominal, N = n2, 
                                             beta = df2$beta, MAF = df2$MAF,
                                             snp = df2$snp_id, type = "quant"),
                             p1 = p1, p2 = p2, p12 = p12)
+  }, error = function(err) {
+    print(paste("ERROR:",err))
+    result = NULL
+  }
+  )
   return(result)
 }
 
@@ -336,21 +342,21 @@ colocGeneAgainstPeaks <- function(gene_df, peaks_df, eqtl_summaries, caqtl_summa
                                   n_eqtl, n_caqtl, variant_information, cis_dist = 2e5){
   
   #Construct gene ranges
-  eqtl_ranges = constructVariantRanges(eQTL_df, variant_information, cis_dist = cis_dist)
+  eqtl_ranges = constructVariantRanges(gene_df, variant_information, cis_dist = cis_dist)
   
   #Fetch summary stats
   eqtl_summaries = fastqtlTabixFetchGenes(eqtl_ranges, eqtl_summaries)[[1]] %>%
     summaryReplaceSnpId(variant_information)
   
   #Construct peak ranges
-  peak_ranges =  purrr::by_row(peak_df, 
+  peak_ranges =  purrr::by_row(peaks_df, 
                                function(x, eqtl_ranges){eqtl_ranges$phenotype_id = x$peak_id; return(eqtl_ranges)}, eqtl_ranges)
   peak_ranges_list = setNames(peak_ranges$.out, peak_ranges$peak_id)
   
   #Fetch peak summaries
   caqtl_summaries_list = purrr::map(peak_ranges_list, ~fastqtlTabixFetchGenes(., caqtl_summaries)[[1]] %>%
                                       summaryReplaceSnpId(variant_information)) 
-  
+
   #Perform coloc
   coloc_res_df = purrr::map(caqtl_summaries_list, 
                             ~testColoc(eqtl_summaries, ., n1 = n_eqtl, n2 = n_caqtl)$summary) %>%
