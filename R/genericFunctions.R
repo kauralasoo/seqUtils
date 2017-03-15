@@ -115,10 +115,10 @@ tbl_df2 <- function(dataframe){
 }
 
 #' Construct matching between minor allele count and genotype text
-constructGenotypeText <- function(snp_id, variant_information){
+constructGenotypeText <- function(selected_snp_id, variant_information){
   
   #Extraxt SNP entry
-  var_info = dplyr::filter(variant_information, snp_id == "rs7594476")
+  var_info = dplyr::filter(variant_information, snp_id == selected_snp_id)
   
   #Make an new tibble
   df = dplyr::data_frame(genotype_value = c("0","1","2"), 
