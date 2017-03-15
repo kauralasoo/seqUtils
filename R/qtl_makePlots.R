@@ -81,6 +81,19 @@ plotQtlCol <- function(qtl_df, scales = "fixed"){
   return(plot)
 }
 
+plotQTLCompact <- function(qtl_df, scales = "fixed"){
+  plot = ggplot2::ggplot(qtl_df, ggplot2::aes(x = genotype_text, y = norm_exp, color = condition_name)) + 
+    ggplot2::facet_grid(condition_name~., scales = scales) + 
+    ggplot2::geom_boxplot(outlier.shape = NA) + 
+    ggplot2::geom_jitter(position = ggplot2::position_jitter(width = .2), size = 0.5) + 
+    ggplot2::ylab(paste0(qtl_df$gene_name[1], " expression")) +
+    ggplot2::xlab(qtl_df$snp_id[1]) + 
+    ggplot2::theme_light() + 
+    ggplot2::scale_color_manual(values = conditionPalette(), guide=FALSE) +
+    theme(strip.text.y = element_text(colour = "grey10"), strip.background = element_rect(fill = "grey85"))
+  return(plot)
+}
+
 #' Make a list of plotEQTL plots.
 #'
 #' Plots are faceted by condition_name column in sample_metadata.

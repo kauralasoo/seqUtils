@@ -207,3 +207,5 @@ extractBetasForQTLPairs <- function(pairs_df, rna_selected_pvalues, atac_selecte
   return(joint_betas)
 }
 
+
+
