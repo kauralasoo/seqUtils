@@ -60,7 +60,7 @@ importAndFilterColocHits <- function(gwas_stats, coloc_suffix = ".eQTL.1e+05.col
 
 
 importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir, 
-                                       qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5, QTLTools = FALSE){
+                                       qtl_paths, GRCh37_variants, GRCh38_variants, cis_dist = 1e5, type = "FastQTL"){
   
   assertthat::assert_that(assertthat::has_name(qtl_df, "phenotype_id"))
   assertthat::assert_that(assertthat::has_name(qtl_df, "snp_id"))
@@ -85,11 +85,17 @@ importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir,
     dplyr::transmute(condition_name = trait_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
   
   #Fetch QTL summary stats
-  if(QTLTools){
+  if(type == "QTLTools"){
     qtl_summaries = purrr::map_df(qtl_paths, ~qtltoolsTabixFetchPhenotypes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
       dplyr::transmute(condition_name, snp_id, chr = snp_chr, pos = snp_start, p_nominal, log10p = -log(p_nominal, 10))
-  } else{
+  } else if (type == "FastQTL"){
     qtl_summaries = purrr::map_df(qtl_paths, ~fastqtlTabixFetchGenes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
+      dplyr::transmute(condition_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
+  } else if (type == "RASQUAL"){
+    new_meta = GenomicRanges::elementMetadata(qtl_ranges) %>% tbl_df2() %>%
+      dplyr::rename(gene_id = phenotype_id)
+    GenomicRanges::elementMetadata(qtl_ranges) = new_meta
+    qtl_summaries = purrr::map_df(qtl_paths, ~tabixFetchGenes(qtl_ranges, .)[[1]], .id = "condition_name") %>%
       dplyr::transmute(condition_name, snp_id, chr, pos, p_nominal, log10p = -log(p_nominal, 10))
   }
 
