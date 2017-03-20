@@ -130,3 +130,30 @@ fastqtlTabixFetchGenesQuick <- function(gene_ids, tabix_file, gene_metadata, cis
   tabix_data = fastqtlTabixFetchGenes(gene_ranges, tabix_file)
   return(tabix_data)
 }
+
+
+#' Fetch particular SNPs from tabix indexed Fastqtl output file.
+#'
+#' @param snp_ranges GRanges object with SNP coordinates.
+#' @param tabix_file Tabix-indexed FastQTL output file.
+#'
+#' @return Data frame that contains all tested rasqual p-values fir each SNP.
+#' @export
+fastqtlTabixFetchSNPs <- function(snp_ranges, tabix_file){
+  
+  #Set column names for rasqual
+  fastqtl_columns = c("phenotype_id","chr","pos","snp_id","distance","p_nominal","beta")
+  fastqtl_coltypes = "ccicidd"
+  
+  tabix_table = scanTabixDataFrame(tabix_file, snp_ranges, col_names = fastqtl_columns, col_types = fastqtl_coltypes)
+  tabix_df = plyr::ldply(tabix_table, .id = NULL)
+  #Check for empty result data frame
+  if(nrow(tabix_df) == 0){
+    warning("No SNPs found in the tabix file.")
+    return(NULL)
+  } else{
+    result = tabix_df %>%
+      dplyr::tbl_df()
+    return(result)
+  }
+}
