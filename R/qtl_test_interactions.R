@@ -237,12 +237,17 @@ testThreewayInteraction <- function(feature_pairs, trait_matrix, sample_metadata
   assertthat::assert_that(assertthat::has_name(feature_pairs, "snp_id"))
   
   #Extract trait data
-  master_cqn = data_frame(sample_id = colnames(trait_matrix), cqn = trait_matrix[feature_pairs$master_id,], peak_type = "master")
-  dependent_cqn = data_frame(sample_id = colnames(trait_matrix), cqn = trait_matrix[feature_pairs$dependent_id,], peak_type = "dependent")
+  master_cqn = data_frame(sample_id = colnames(trait_matrix), 
+                          cqn = trait_matrix[feature_pairs$master_id,], 
+                          peak_type = "master")
+  dependent_cqn = data_frame(sample_id = colnames(trait_matrix), 
+                             cqn = trait_matrix[feature_pairs$dependent_id,], 
+                             peak_type = "dependent")
   cqn_data = rbind(master_cqn, dependent_cqn)
   
   #genotypes
-  geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[feature_pairs$snp_id,])
+  geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), 
+                         genotype = vcf_file$genotypes[feature_pairs$snp_id,])
   
   #Everything
   joint_data = dplyr::left_join(cqn_data, sample_metadata, by = "sample_id") %>% 
