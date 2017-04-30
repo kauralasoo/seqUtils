@@ -116,6 +116,10 @@ testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_
   exp_data = data_frame(sample_id = colnames(trait_matrix), expression = trait_matrix[gene_id,])
   geno_data = data_frame(genotype_id = colnames(vcf_file$genotypes), genotype = vcf_file$genotypes[snp_id,])
   
+  if(length(intersect(exp_data$sample_id, sample_metadata$sample_id)) != length(exp_data$sample_id)){
+    stop("sample_id columns for trait_matrix and sample_metadata do not match.")
+  } 
+
   sample_data = dplyr::left_join(sample_metadata, exp_data, by = "sample_id") %>%
     dplyr::left_join(geno_data, by = "genotype_id") %>%
     dplyr::filter(!is.na(genotype)) #Remove NA genotypes, because lm does not like them
