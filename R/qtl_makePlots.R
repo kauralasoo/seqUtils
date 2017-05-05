@@ -45,7 +45,8 @@ constructQtlPlotDataFrame <- function(selected_gene_id, genotype_id, expression_
   
   #expression
   expression_vector = expression_matrix[selected_gene_id,]
-  exprs_df = dplyr::data_frame(sample_id = names(expression_vector), norm_exp = expression_vector)
+  exprs_df = dplyr::data_frame(sample_id = names(expression_vector), norm_exp = unlist(expression_vector))
+
   
   #Join all of the data together
   g_id = genotype_id
