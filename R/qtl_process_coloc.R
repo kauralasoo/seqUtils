@@ -111,7 +111,7 @@ importSummariesForPlotting <- function(qtl_df, gwas_stats_labeled, gwas_dir,
 plotColoc <- function(df, plot_title){
   plot = ggplot(df, aes(x = pos, y = log10p)) + 
     geom_point() + 
-    facet_grid(condition_name~.) +
+    facet_grid(condition_name~., scales = "free_y") +
     labs(title = plot_title) + 
     theme_light()
   return(plot)

@@ -148,7 +148,7 @@ savePlots <- function(plot_list, path, width, height){
 savePlotList <- function(plot_list, output_folder, suffix = ".pdf", ...){
   for (name in names(plot_list)){
     path = file.path(output_folder, paste0(name, suffix))
-    ggsave(path, plot_list[[name]], ...)
+    ggplot2::ggsave(path, plot_list[[name]], ...)
   }
 }
 
