@@ -172,8 +172,8 @@ calculateTranscriptRatios <- function(expression_matrix, gene_transcript_map){
     dplyr::select(gene_id, everything())
   
   #Calculate total expression per gene
-  gene_total_tpms = purrr::slice_rows(tpm_df, "gene_id") %>% 
-    purrr::by_slice(~colSums(.) %>% 
+  gene_total_tpms = purrrlyr::slice_rows(tpm_df, "gene_id") %>% 
+    purrrlyr::by_slice(~colSums(.) %>% 
                       t() %>% 
                       as.data.frame(), .collate = "rows")
   
