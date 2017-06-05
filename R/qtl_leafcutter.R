@@ -34,7 +34,7 @@ leafcutterMetaToGrangesList <- function(leafutter_metadata, exon_length = 75){
   inton_both = bind_rows(intron_start, intron_end) %>%
     dplyr::select(-type) %>%
     dplyr::group_by(transcript_id) %>%
-    purrr::by_slice(~dataFrameToGRanges(.))
+    purrrlyr::by_slice(~dataFrameToGRanges(.))
   intron_list = setNames(inton_both$.out, inton_both$transcript_id)
   return(intron_list)
 }
