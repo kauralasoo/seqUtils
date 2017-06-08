@@ -272,7 +272,7 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
 }
 
 colocMolecularQTLsByRow <- function(qtl_df, ...){
-  result = purrr::by_row(qtl_df, ~colocMolecularQTLs(.,...)$summary, .collate = "rows")
+  result = purrrlyr::by_row(qtl_df, ~colocMolecularQTLs(.,...)$summary, .collate = "rows")
 }
 
 #Make coloc plot
@@ -351,7 +351,7 @@ colocGeneAgainstPeaks <- function(gene_df, peaks_df, eqtl_summaries, caqtl_summa
     summaryReplaceSnpId(variant_information)
 
     #Construct peak ranges
-    peak_ranges =  purrr::by_row(peaks_df, 
+    peak_ranges =  purrrlyr::by_row(peaks_df, 
                                  function(x, eqtl_ranges){eqtl_ranges$phenotype_id = x$peak_id; return(eqtl_ranges)}, eqtl_ranges)
     peak_ranges_list = setNames(peak_ranges$.out, peak_ranges$peak_id)
 
