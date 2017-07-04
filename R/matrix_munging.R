@@ -186,3 +186,19 @@ calculateTranscriptRatios <- function(expression_matrix, gene_transcript_map){
   tpm_ratios = expression_matrix/tx_gene_matrix[rownames(expression_matrix),]
   return(tpm_ratios)
 }
+
+removeLowlyExpressedTranscripts <- function(se, expression_thresh = 0.05, sample_thresh = 0.05){
+  
+  #Extract ratios
+  ratio_matrix = SummarizedExperiment::assays(se)$tpm_ratios
+  sample_count = ceiling(ncol(se)*sample_thresh)
+
+  #Apply thresholding
+  thresholded_ratios = ratio_matrix > expression_thresh
+  thresholded_ratios[is.na(thresholded_ratios)] = FALSE #Substitute NAs
+  filtered_ratios = thresholded_ratios[rowSums(thresholded_ratios) > sample_count,]
+
+  #Filter SummarizedExperiment
+  filtered_se = se[rownames(filtered_ratios),]
+  return(filtered_se)
+}
