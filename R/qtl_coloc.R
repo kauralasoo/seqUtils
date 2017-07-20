@@ -374,3 +374,21 @@ colocGeneAgainstPeaks <- function(gene_df, peaks_df, eqtl_summaries, caqtl_summa
   )
   return(coloc_res_df)
 }
+
+
+constructQtlListForColoc <- function(phenotype, qtl_root, sample_size_list){
+  conditions = names(sample_size_list)
+  min_pvalues = list()
+  qtl_summary_list = list()
+  
+  #Iterate over conditions and fill lists
+  for(condition in conditions){
+    min_pvalue_path = file.path(qtl_root, phenotype, paste0(condition, ".permuted.txt.gz"))
+    summary_path = file.path(qtl_root, phenotype, "sorted", paste0(condition, ".nominal.sorted.txt.gz"))
+    
+    min_pvalues[[condition]] = importQTLtoolsTable(min_pvalue_path)
+    qtl_summary_list[[condition]] = summary_path
+  }
+  return(list(min_pvalues = min_pvalues, qtl_summary_list = qtl_summary_list, sample_sizes = sample_size_list))
+}
+
