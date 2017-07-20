@@ -386,7 +386,7 @@ constructQtlListForColoc <- function(phenotype, qtl_root, sample_size_list){
     min_pvalue_path = file.path(qtl_root, phenotype, paste0(condition, ".permuted.txt.gz"))
     summary_path = file.path(qtl_root, phenotype, "sorted", paste0(condition, ".nominal.sorted.txt.gz"))
     
-    min_pvalues[[condition]] = importQTLtoolsTable(min_pvalue_path)
+    min_pvalues[[condition]] = importQTLtoolsTable(min_pvalue_path) %>% dplyr::select(phenotype_id, snp_id, p_fdr)
     qtl_summary_list[[condition]] = summary_path
   }
   return(list(min_pvalues = min_pvalues, qtl_summary_list = qtl_summary_list, sample_sizes = sample_size_list))
