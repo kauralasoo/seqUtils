@@ -271,3 +271,19 @@ testThreewayInteraction <- function(feature_pairs, trait_matrix, sample_metadata
   }
 }
 
+testInteractionByChromosome <- function(chr, joint_pairs, ...){
+  
+  #Import genotypes
+  vcf_file = seqUtils::gdsToMatrix(paste0("processed/Fairfax/geno_by_chr/",chr,".gds"))
+  
+  #Filter unique snps per probe
+  chr_pairs = dplyr::filter(joint_pairs, pheno_chr == chr) %>%
+    dplyr::select(gene_id, snp_id)
+  filtered_pairs = filterHitsR2(chr_pairs, vcf_file$genotypes, .8) %>% dplyr::tbl_df()
+  
+  #Test interactions
+  interaction_results = testMultipleInteractions(snps_df = filtered_pairs,
+                                                 vcf_file = vcf_file, ...)
+  return(interaction_results)
+}
+
