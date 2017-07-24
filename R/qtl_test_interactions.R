@@ -273,6 +273,9 @@ testThreewayInteraction <- function(feature_pairs, trait_matrix, sample_metadata
 
 testInteractionByChromosome <- function(chr, joint_pairs, ...){
   
+  #Print chromosome same
+  print(chr)
+  
   #Import genotypes
   vcf_file = seqUtils::gdsToMatrix(paste0("processed/Fairfax/geno_by_chr/",chr,".gds"))
   
