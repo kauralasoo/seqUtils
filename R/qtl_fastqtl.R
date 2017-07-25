@@ -49,7 +49,7 @@ importFastQTLTable <- function(file_path){
 constructFastQTLGenePos <- function(gene_metadata){
 	genepos = dplyr::select(gene_metadata, chr, start, end, gene_id) %>% 
 	  dplyr::arrange(chr, start) %>%
-    dplyr::rename_("left" = "start", "right" = "end", "geneid" = "gene_id", "#chr" = "chr")
+    dplyr::rename_("left" = "start", "right" = "end", "ID" = "gene_id", "#Chr" = "chr")
   return(genepos)
 }
 
@@ -61,9 +61,9 @@ constructFastQTLGenePos <- function(gene_metadata){
 #' @author Kaur Alasoo
 #' @export 
 prepareFastqtlMatrix <- function(matrix, genepos){
-  res = dplyr::mutate(as.data.frame(matrix), geneid = rownames(matrix)) %>%
-    dplyr::select(geneid, everything()) %>%
-    dplyr::left_join(genepos, ., by = "geneid") %>%
+  res = dplyr::mutate(as.data.frame(matrix), ID = rownames(matrix)) %>%
+    dplyr::select(ID, everything()) %>%
+    dplyr::left_join(genepos, ., by = "ID") %>%
     dplyr::arrange()
 }
 
