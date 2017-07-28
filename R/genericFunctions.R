@@ -122,9 +122,9 @@ constructGenotypeText <- function(selected_snp_id, variant_information){
   
   #Make an new tibble
   df = dplyr::data_frame(genotype_value = c("0","1","2"), 
-                         genotype_text = c(paste0(var_info$ref, var_info$ref), 
-                                           paste0(var_info$ref, var_info$alt), 
-                                           paste0(var_info$alt, var_info$alt))) %>%
+                         genotype_text = c(paste0(var_info$alt, var_info$alt), 
+                                           paste0(var_info$alt, var_info$ref), 
+                                           paste0(var_info$ref, var_info$ref))) %>%
     dplyr::mutate(genotype_text = factor(genotype_text, levels = genotype_text))
   return(df)
 }

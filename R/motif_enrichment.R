@@ -334,7 +334,7 @@ quantifyMultipleMotifs <- function(peak_id, snp_id, pwm_list, peak_metadata, pea
 #' @param peak_snp_list data frame of peak and snp ids (required columns: gene_id, snp_id) 
 quantifyMultipleVariants <- function(peak_snp_list, motif_list, peak_metadata, peak_sequences, snp_metadata, window_size = 25){
   
-  motif_disruptions = purrr::by_row(peak_snp_list, function(x, ...){
+  motif_disruptions = purrrlyr::by_row(peak_snp_list, function(x, ...){
     print(x$gene_id)
     quantifyMultipleMotifs(x$gene_id, x$snp_id, ...)
   },motif_list, peak_metadata, peak_sequences, snp_metadata, window_size, .collate = "rows")
