@@ -6,6 +6,11 @@
 \usage{
 importVariantInformation(path)
 }
+\arguments{
+\item{path}{Path to the the variant information text file.}
+}
 \description{
-Import variant information extracted from VCF file into R
+The variant information text file can be generated from the VCF using the following 
+bcftools command:
+bcftools query -f '\%CHROM\\t\%POS\\t\%ID\\t\%REF\\t\%ALT\\t\%TYPE\\t\%AC\\t\%AN\\n' path/to/vcf_file.vcf.gz | bgzip > path/to/variant_infromation_file.txt.gz
 }

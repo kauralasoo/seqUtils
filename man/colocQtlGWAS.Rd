@@ -7,9 +7,9 @@
 colocQtlGWAS(qtl, gwas, N_qtl)
 }
 \arguments{
-\item{qtl}{QTL summary stats (p_nominal, MAF, neta, snp_id)}
+\item{qtl}{QTL summary stats (p_nominal, MAF, beta, snp_id)}
 
-\item{gwas}{GWAS summary stats(beta, se, MAF)}
+\item{gwas}{GWAS summary stats(beta, se, MAF, log_OR)}
 
 \item{N_qtl}{Sample size of the QTL mapping study}
 }

@@ -4,7 +4,7 @@
 \alias{constructGenotypeText}
 \title{Construct matching between minor allele count and genotype text}
 \usage{
-constructGenotypeText(snp_id, variant_information)
+constructGenotypeText(selected_snp_id, variant_information)
 }
 \description{
 Construct matching between minor allele count and genotype text

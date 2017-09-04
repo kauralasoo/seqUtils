@@ -4,10 +4,10 @@
 \alias{fastqtlTabixFetchGenes}
 \title{Fetch particular genes from tabix indexed FastQTL output file.}
 \usage{
-fastqtlTabixFetchGenes(gene_ranges, tabix_file)
+fastqtlTabixFetchGenes(phenotype_ranges, tabix_file)
 }
 \arguments{
-\item{gene_ranges}{GRanges object with coordinates of the cis regions around genes.}
+\item{phenotype_ranges}{GRanges object with coordinates of the cis regions around genes.}
 
 \item{tabix_file}{Tabix-indexed fastqtl output file.}
 }

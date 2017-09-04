@@ -22,7 +22,7 @@ gene_id, snp_id and p_fdr and should not contain other columns.}
 \item{gwas_thresh}{Minimal GWAS p-value threshold}
 }
 \value{
-List of data.frames with gene_ids and snp_ids to be tested with coloc.
+List of data.frames with phenotype_ids and snp_ids to be tested with coloc.
 }
 \description{
 Perform a quick pre-filtering between QTLs and GWAS hits to reduce the number of coloc tests
