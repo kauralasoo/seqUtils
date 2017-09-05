@@ -114,7 +114,7 @@ fimoRelativeEnrichment <- function(foreground, background = NULL, fimo_hits, pea
   #Motif_enrichment
   enrichments = dplyr::left_join(bg_matches, fg_matches, by = "motif_id") %>%
     dplyr::filter(!is.na(n_fg_matches)) %>% #Not sure why this is necessary
-    purrr::by_row(., ~subsampleFisherTest(.$n_fg_matches, .$fg_length, .$n_bg_matches, .$bg_length), .collate = "rows")
+    purrrlyr::by_row(., ~subsampleFisherTest(.$n_fg_matches, .$fg_length, .$n_bg_matches, .$bg_length), .collate = "rows")
   return(enrichments)
 }
 
@@ -194,11 +194,11 @@ fimoFisherTest <- function(bg_motif_hits, fg_motif_hits, bg_seq_length, fg_seq_l
     dplyr::arrange(-fold_enrichment)
   
   #Peform Fisher's Exact test on each motif
-  fisher_tests = purrr::by_row(joint_matches, ~fisher.test(matrix(c(.$n_fg_matches, .$fg_length-.$n_fg_matches,
+  fisher_tests = purrrlyr::by_row(joint_matches, ~fisher.test(matrix(c(.$n_fg_matches, .$fg_length-.$n_fg_matches,
                               .$n_bg_matches, .$bg_length-.$n_bg_matches), 2, 2) ), .to = "fisher_test")
   
   #Extract p-values and ORs
-  enrichment = purrr::by_row(fisher_tests, function(df_row){
+  enrichment = purrrlyr::by_row(fisher_tests, function(df_row){
     test = df_row$fisher_test[[1]]
     result = data_frame(fisher_pvalue = test$p.value,
                         OR = test$estimate, 
