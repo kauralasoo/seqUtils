@@ -134,7 +134,7 @@ testInteraction <- function(gene_id, snp_id, trait_matrix, sample_metadata, vcf_
     return(res[[6]])
   }
   else{
-    return(list(anova = res, interaction_model = interaction))
+    return(list(anova = res, qtl_model = no_interaction, interaction_model = interaction))
   }
 }
 
@@ -175,7 +175,7 @@ testInteractionLme4 <- function(gene_id, snp_id, trait_matrix, sample_metadata, 
     return(res[[8]])
   }
   else{
-    return(list(anova = res, interaction_model = interaction))
+    return(list(anova = res, qtl_model = no_interaction, interaction_model = interaction))
   }
 }
 
