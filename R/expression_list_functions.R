@@ -107,6 +107,7 @@ constructGeneData <- function(gene_id, expression_matrix, sample_metadata){
 #' @return Filtered SummarizedExperiment
 #' @export
 extractConditionFromSummarizedExperiment <- function(cond_name, summarizedExperiment){
-  result = summarizedExperiment[,summarizedExperiment$condition_name == cond_name]
+  selection = summarizedExperiment$condition_name %in% cond_name
+  result = summarizedExperiment[,selection]
   return(result)
 }

@@ -193,7 +193,7 @@ testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf
   #Plot eQTL results for a list of gene and SNP pairs.
   result = list()
   for(i in 1:nrow(snps_df)){
-    gene_id = snps_df[i,]$gene_id
+    gene_id = snps_df[i,]$phenotype_id
     snp_id = snps_df[i,]$snp_id
     print(gene_id)
     if (lme4 == TRUE){
@@ -209,9 +209,9 @@ testMultipleInteractions <- function(snps_df, trait_matrix, sample_metadata, vcf
 #Post-process results from testMultipleInteractions
 postProcessInteractionPvalues <- function(pvalue_list, id_field_separator = ";"){
   res = plyr::ldply(pvalue_list, .id = "id") %>% 
-    tidyr::separate(id, into = c("gene_id", "snp_id"), sep = id_field_separator) %>%
+    tidyr::separate(id, into = c("phenotype_id", "snp_id"), sep = id_field_separator) %>%
     dplyr::rename(p_nominal = V2) %>% tbl_df() %>%
-    dplyr::select(gene_id, snp_id, p_nominal) %>%
+    dplyr::select(phenotype_id, snp_id, p_nominal) %>%
     dplyr::mutate(p_fdr = p.adjust(p_nominal,"fdr")) %>%
     dplyr::mutate(qvalue = qvalue::qvalue(p_nominal)$qvalues) %>%
     dplyr::arrange(p_nominal)

@@ -70,7 +70,7 @@ calculateNormFactors <- function(counts_matrix, method = "RLE"){
   return(result)
 }
 
-calculateMean <- function(matrix, design, factor, sample_id_col = "sample_id"){
+calculateMean <- function(matrix, design, factor, sample_id_col = "sample_id", na.rm = FALSE){
   #Calculate the mean value in matrix over all possible factor values.
   
   #If the factor is not a factor then make it a factor.
@@ -87,7 +87,7 @@ calculateMean <- function(matrix, design, factor, sample_id_col = "sample_id"){
     filter = factor == lev
     samples = rownames(design[filter,])
     mat = matrix[,samples]
-    mat = rowMeans(mat)
+    mat = rowMeans(mat, na.rm)
     result = cbind(result, mat)
   }
   colnames(result) = levs
