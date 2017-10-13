@@ -244,6 +244,8 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
   assertthat::assert_that(is.numeric(cis_dist))
   assertthat::assert_that(is.numeric(N_qtl))
   
+  #Print for debugging
+  print(qtl_df$phenotype_id)
   
   result = tryCatch({
     #Make GRanges object to fetch data
@@ -257,7 +259,7 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
     } else{
       qtl_summaries = fastqtlTabixFetchGenes(qtl_ranges, qtl_summary_path)[[1]]
     }
-
+    
     #Fetch GWAS summary stats
     gwas_summaries = tabixFetchGWASSummary(gwas_ranges, gwas_summary_path)[[1]]
     
@@ -265,11 +267,12 @@ colocMolecularQTLs <- function(qtl_df, qtl_summary_path, gwas_summary_path,
     qtl = summaryReplaceCoordinates(qtl_summaries, gwas_variant_info)
     
     #Substitute snp_id for the GWAS summary stats and add MAF
-    gwas = summaryReplaceSnpId(gwas_summaries, qtl_variant_info)
-    
+    gwas = summaryReplaceSnpId(gwas_summaries, gwas_variant_info)
+
     #Extract minimal p-values for both traits
     qtl_min = dplyr::arrange(qtl, p_nominal) %>% dplyr::filter(row_number() == 1)
     gwas_min = dplyr::arrange(gwas, p_nominal) %>% dplyr::filter(row_number() == 1)
+    
     
     #Perform coloc analysis
     coloc_res = colocQtlGWAS(qtl, gwas, N_qtl = N_qtl)
