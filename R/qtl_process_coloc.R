@@ -28,6 +28,31 @@ countConditionSpecificOverlaps <- function(coloc_filtered, PP_power_thresh = 0.8
     dplyr::left_join(figureNames(), by = "condition_name")
 }
 
+importColocs <- function(gwas_stats, coloc_suffix = ".eQTL.1e+05.coloc.txt", coloc_prefix = "results/SL1344/coloc/coloc_lists/",
+                         PP_power_thresh = 0.8, PP_coloc_thresh = .9, nsnps_thresh = 50, gwas_pval_thresh = 1e-6, mhc_phenotypes){
+  
+  #Name all files
+  file_names = as.list(paste0(coloc_prefix, gwas_stats$trait, coloc_suffix))
+  names(file_names) = gwas_stats$trait
+  
+  #Import enrichments
+  coloc_df = purrr::map_df(file_names, ~readr::read_delim(., delim = "\t"), .id = "trait") %>%
+    dplyr::mutate(PP_power = (PP.H4.abf + PP.H3.abf), PP_coloc = PP.H4.abf/PP_power) %>%
+    dplyr::mutate(summarised_trait = ifelse(trait %in% c("IBD","UC","CD"), "IBD", trait)) %>% #Summarise traits to higher level
+    dplyr::mutate(summarised_trait = ifelse(summarised_trait %in% c("CAD","CAD_2017"), "CAD", summarised_trait)) %>%
+    dplyr::filter(!(phenotype_id %in% mhc_phenotypes$phenotype_id))
+  
+  #Filter colocs
+  filtered_colocs = dplyr::filter(coloc_df, PP_power > PP_power_thresh, PP_coloc > PP_coloc_thresh, nsnps > nsnps_thresh, gwas_pval < gwas_pval_thresh) %>%
+    dplyr::select(trait, phenotype_id, snp_id) %>%
+    dplyr::distinct()
+  
+  #Keep the same coloc in all conditions
+  coloc_hits = dplyr::semi_join(coloc_df, filtered_colocs, by = c("trait", "phenotype_id", "snp_id"))
+  
+  return(coloc_hits)
+}
+
 importAndFilterColocHits <- function(gwas_stats, coloc_suffix = ".eQTL.1e+05.coloc.txt", coloc_prefix = "results/SL1344/coloc/coloc_lists/",
                                      PP_power_thresh = 0.8, PP_coloc_thresh = .9, nsnps_thresh = 50, gwas_pval_thresh = 1e-6, mhc_phenotypes){
   #Import coloc hits
@@ -39,7 +64,9 @@ importAndFilterColocHits <- function(gwas_stats, coloc_suffix = ".eQTL.1e+05.col
   #Import enrichments
   coloc_df = purrr::map_df(file_names, ~readr::read_delim(., delim = "\t"), .id = "trait") %>%
     dplyr::mutate(PP_power = (PP.H4.abf + PP.H3.abf), PP_coloc = PP.H4.abf/PP_power) %>%
-    dplyr::mutate(summarised_trait = ifelse(trait %in% c("IBD","UC","CD"), "IBD", trait))
+    dplyr::mutate(summarised_trait = ifelse(trait %in% c("IBD","UC","CD"), "IBD", trait)) %>%
+    dplyr::mutate(summarised_trait = ifelse(summarised_trait %in% c("CAD","CAD_2017"), "CAD", summarised_trait))
+  
   
   #Identify one overlap GWAS lead varaint
   coloc_hits = identifyColocHits(coloc_df, PP_power_thresh, PP_coloc_thresh, nsnps_thresh) %>%
