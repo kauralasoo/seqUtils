@@ -65,7 +65,8 @@ plotQtlRow <- function(qtl_df, scales = "fixed"){
     ggplot2::ylab(paste0(qtl_df$gene_name[1], " expression")) +
     ggplot2::xlab(qtl_df$snp_id[1]) + 
     ggplot2::theme_light() + 
-    ggplot2::scale_color_manual(values = conditionPalette(), guide=FALSE)
+    ggplot2::scale_color_manual(values = conditionPalette(), guide=FALSE) +
+    theme(strip.text.x = element_text(colour = "grey10"), strip.background = element_rect(fill = "grey85"))
   return(plot)
 }
 
