@@ -326,14 +326,14 @@ makeColocPlot <- function(data_list){
 #' @param qtl_min_pvalues List of data frames with QTL lead pvalues. Each data frame must contain
 #' gene_id, snp_id and p_fdr and should not contain other columns.
 #' @param gwas_prefix Prefix of the GWAS summarystats file
-#' @param GRCh37_variants QTL variant information in GWAS coordinates.
+#' @param gwas_variant_info QTL variant information in GWAS coordinates.
 #' @param fdr_thresh Minimal QTL FDR threshold
 #' @param overlap_dist Max distance between GWAS and QTL variants.
 #' @param gwas_thresh Minimal GWAS p-value threshold
 #'
 #' @return List of data.frames with phenotype_ids and snp_ids to be tested with coloc.
 #' @export
-prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_variants, 
+prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, gwas_variant_info, 
                                      fdr_thresh = 0.1, overlap_dist = 1e5, gwas_thresh = 1e-5){
   
   #Make sure that the qtl_df has neccessary columns
@@ -351,7 +351,7 @@ prefilterColocCandidates <- function(qtl_min_pvalues, gwas_prefix, GRCh37_varian
   #Filter lead variants
   qtl_hits = purrr::map(qtl_min_pvalues, ~dplyr::filter(., p_fdr < fdr_thresh))
   lead_variants = purrr::map_df(qtl_hits, identity) %>% unique()
-  selected_variants = dplyr::filter(GRCh37_variants, snp_id %in% lead_variants$snp_id) %>% 
+  selected_variants = dplyr::filter(gwas_variant_info, snp_id %in% lead_variants$snp_id) %>% 
     dplyr::select(chr, pos, snp_id)
   
   #Add GRCh37 coordinates

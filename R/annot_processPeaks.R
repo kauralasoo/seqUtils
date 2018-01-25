@@ -17,7 +17,7 @@ filterOverlaps <- function(peak_list, minOverlapCount = 3){
     for (j in 1:length(peak_list)){
       target_peaks = peak_list[[j]]
       overlaps = GenomicRanges::findOverlaps(query_peaks, target_peaks)
-      unique_hits = unique(GenomicRanges::queryHits(overlaps))
+      unique_hits = unique(S4Vectors::queryHits(overlaps))
       query_hits = c(query_hits, unique_hits)
     }
     query_hits = table(query_hits)
