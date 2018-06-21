@@ -451,3 +451,15 @@ salmonSummarizedExperiment <- function(sample_metadata, transcript_metadata, sam
   
   return(se)
 }
+
+
+#Import transcript metadata from biomart web export
+importBiomartMetadata <- function(biomart_path){
+  transcript_meta = readr::read_tsv(biomart_path)
+  col_df = dplyr::data_frame(column_name = c('Gene stable ID', 'Transcript stable ID', 'Chromosome/scaffold name', 'Gene start (bp)', 'Gene end (bp)', 'Strand', 'Transcript start (bp)', 'Transcript end (bp)', 'Transcription start site (TSS)', 'Transcript length (including UTRs and CDS)', 'Transcript support level (TSL)', 'APPRIS annotation', 'GENCODE basic annotation', 'Gene name', 'Transcript name', 'Transcript count', 'Transcript type', 'Gene type', 'Gene % GC content', 'Version (gene)', 'Version (transcript)'),
+                             column_id = c('gene_id', 'transcript_id', 'chromosome', 'gene_start', 'gene_end', 'strand', 'transcript_start', 'transcript_end', 'tss', 'transcript_length', 'transcript_tsl', 'transcript_appris', 'is_gencode_basic', 'gene_name', 'transcript_name', 'transcript_count', 'transcript_type', 'gene_type', 'gene_gc_content', 'gene_version', 'transcript_version'))
+  transcript_meta = transcript_meta[,col_df$column_name] %>% dplyr::distinct()
+  colnames(transcript_meta) = col_df$column_id
+  return(transcript_meta)
+}
+
