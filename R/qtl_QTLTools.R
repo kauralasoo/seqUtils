@@ -83,3 +83,23 @@ qtltoolsTabixFetchPhenotypes <- function(phenotype_ranges, tabix_file){
 }
 
 
+mbvFindBestMatch <- function(mbv_df){
+  res = dplyr::transmute(mbv_df, mbv_genotype_id = SampleID, 
+                         het_consistent_frac = n_het_consistent/n_het_covered, 
+                         hom_consistent_frac = n_hom_consistent/n_hom_covered)
+  
+  #Identify best het
+  best_het = dplyr::arrange(res, -het_consistent_frac) %>% dplyr::filter(dplyr::row_number() == 1)
+  other_het = dplyr::arrange(res, -het_consistent_frac) %>% dplyr::filter(dplyr::row_number() > 1)
+  best_row = dplyr::mutate(best_het, het_min_dist = min(best_het$het_consistent_frac - other_het$het_consistent_frac),
+                           hom_min_dist = min(best_het$hom_consistent_frac - other_het$hom_consistent_frac))
+  
+  #Compare against best hom
+  best_hom = dplyr::arrange(res, -hom_consistent_frac) %>% dplyr::filter(dplyr::row_number() == 1)
+  if(best_row$mbv_genotype_id != best_hom$mbv_genotype_id){
+    best_row = dplyr::mutate(best_row, het_consistent_frac = as.numeric(NA), hom_consistent_frac = as.numeric(NA),
+                             het_min_dist = as.numeric(NA), hom_min_dist = as.numeric(NA))
+  }
+  return(best_row)
+}
+
