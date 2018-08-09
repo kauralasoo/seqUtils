@@ -98,16 +98,3 @@ constructGeneData <- function(gene_id, expression_matrix, sample_metadata){
 }
 
 
-#' Extract samples from SummarizedExperiment based on condition_name column in metadata.
-#'
-#' @param cond_name Name of the condition, has to match at least one entry in the 
-#' condition_name columns of the colData data frame.
-#' @param expression_list Expression list to be filtered.
-#'
-#' @return Filtered SummarizedExperiment
-#' @export
-extractConditionFromSummarizedExperiment <- function(cond_name, summarizedExperiment){
-  selection = summarizedExperiment$condition_name %in% cond_name
-  result = summarizedExperiment[,selection]
-  return(result)
-}

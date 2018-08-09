@@ -4,6 +4,8 @@ makeSummarizedExperiemnt <- function(featureCounts, transcript_metadata, sample_
   gene_data = dplyr::select(transcript_metadata, gene_id, chromosome, gene_start, gene_end, strand, 
                             gene_name, gene_type, gene_gc_content, gene_version) %>% 
     dplyr::distinct() %>%
+    dplyr::mutate(phenotype_id = gene_id, group_id = gene_id) %>%
+    dplyr::mutate(phenotype_pos = as.integer(ceiling((gene_end + gene_start)/2))) %>%
     as.data.frame()
   rownames(gene_data) = gene_data$gene_id
   
@@ -163,4 +165,51 @@ mergeCountsSEs <- function(se1, se2){
   return(se)
 }
 
+
+#' Extract samples from SummarizedExperiment based on condition_name column in metadata.
+#'
+#' @param cond_name Name of the condition, has to match at least one entry in the 
+#' condition_name columns of the colData data frame.
+#' @param expression_list Expression list to be filtered.
+#'
+#' @return Filtered SummarizedExperiment
+#' @export
+extractConditionFromSummarizedExperiment <- function(cond_name, summarizedExperiment){
+  selection = summarizedExperiment$condition_name %in% cond_name
+  result = summarizedExperiment[,selection]
+  return(result)
+}
+
+convertSEtoQTLtools <- function(se, assay_name = "cqn"){
+  
+  #Extract rowData from the SE
+  phenotype_data = rowData(se) %>% 
+    as.data.frame() %>% 
+    dplyr::as_tibble()
+  
+  #Make sure that all required columns are present
+  assertthat::assert_that(assertthat::has_name(phenotype_data, "chromosome"))
+  assertthat::assert_that(assertthat::has_name(phenotype_data, "phenotype_pos"))
+  assertthat::assert_that(assertthat::has_name(phenotype_data, "phenotype_id"))
+  assertthat::assert_that(assertthat::has_name(phenotype_data, "group_id"))
+  assertthat::assert_that(!is.null(se$genotype_id))
+  
+  #Make genePos table for QTLTools
+  pheno_data = dplyr::arrange(phenotype_data, chromosome, phenotype_pos) %>%
+    dplyr::transmute(chromosome, left = phenotype_pos, right = phenotype_pos, phenotype_id, group_id, strand) %>%
+    dplyr::rename_("#chr" = "chromosome") %>%
+    dplyr::mutate(strand = ifelse(strand == 1, "+", "-"))
+  
+  #Exptract phenotype and rename columns according to genotype id
+  assay = assays(se)[[assay_name]]
+  colnames(assay) = se$genotype_id
+  
+  #Make QTLtools phenotype table
+  res = dplyr::mutate(as.data.frame(assay), phenotype_id = rownames(assay)) %>%
+    dplyr::select(phenotype_id, everything()) %>%
+    dplyr::left_join(pheno_data, ., by = "phenotype_id") %>%
+    dplyr::arrange()
+  
+  return(res)
+}
 
