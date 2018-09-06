@@ -147,21 +147,25 @@ mergeCountsSEs <- function(se1, se2){
   #Extract fields
   counts1 = SummarizedExperiment::assays(se1)$counts
   col1 = SummarizedExperiment::colData(se1)
-  row1 = SummarizedExperiment::rowData(se2)
-  
+
   counts2 = SummarizedExperiment::assays(se2)$counts
   col2 = SummarizedExperiment::colData(se2)
-  row2 = SummarizedExperiment::rowData(se2)
-  
+
+  #Keep only shared gene ids
+  shared_genes = intersect(rownames(counts1), rownames(counts2))
+
   #Merge data
   shared_cols = intersect(colnames(col1), colnames(col2))
   merged_coldata = rbind(col1[,shared_cols], col2[,shared_cols])
-  merged_counts = cbind(counts1, counts2)
+  merged_counts = cbind(counts1[shared_genes,], counts2[shared_genes,])
+  
+  #Extraxct row dara from first SE
+  row_data = SummarizedExperiment::rowData(se1[shared_genes,])
   
   se = SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = merged_counts), 
     colData = merged_coldata, 
-    rowData = row1)
+    rowData = row_data)
   return(se)
 }
 
