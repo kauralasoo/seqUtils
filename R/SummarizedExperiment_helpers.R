@@ -184,6 +184,21 @@ extractConditionFromSummarizedExperiment <- function(cond_name, summarizedExperi
   return(result)
 }
 
+
+#' Extract a subset of the data from a SummarizedExperiment based on column information
+#'
+#' @param se SummarizedExperiment object
+#' @param column Name of the column in the colData object
+#' @param value Value of the column to be extracted
+#'
+#' @return Subsetted SummmarizedExperiment object
+#' @export
+subsetSEByColumnValue <- function(se, column, value){
+  selection = colData(cqn_se)[,column] == value
+  result = se[,selection]
+  return(result)
+}
+
 convertSEtoQTLtools <- function(se, assay_name = "cqn"){
   
   #Extract rowData from the SE
