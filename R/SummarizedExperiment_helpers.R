@@ -303,3 +303,29 @@ normaliseSE_ratios <- function(se, assay_name = "tpms"){
   return(se)
 }
 
+
+#' Quantile normalise SummarizedExperiment by rows
+#'
+#' @param se SummarizedExperiment object
+#' @param assay_name Name of the assay to be normalised in the se object
+#'
+#' @return
+#' @export
+normaliseSE_quantile <- function(se, assay_name = "usage"){
+  
+  #Extract assays
+  assay_list = SummarizedExperiment::assays(se)
+  assay_matrix = assay_list[[assay_name]]
+  
+  #Quantile normalise
+  qnorm = quantileNormaliseRows(assay_matrix)
+  assay_list[["qnorm"]] = qnorm
+  
+  #Make ab update se object
+  se = SummarizedExperiment::SummarizedExperiment(
+    assays = assay_list, 
+    colData = SummarizedExperiment::colData(se), 
+    rowData = SummarizedExperiment::rowData(se))
+  return(se)
+}
+
