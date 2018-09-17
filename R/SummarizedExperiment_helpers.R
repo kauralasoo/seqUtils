@@ -1,4 +1,4 @@
-makeSummarizedExperiemnt <- function(featureCounts, transcript_metadata, sample_metadata){
+makeFeatureCountsSummarizedExperiemnt <- function(featureCounts, transcript_metadata, sample_metadata){
   
   #Extract gene metadata
   gene_data = dplyr::select(transcript_metadata, gene_id, chromosome, gene_start, gene_end, strand, 
@@ -41,6 +41,26 @@ makeSummarizedExperiemnt <- function(featureCounts, transcript_metadata, sample_
     rowData = gene_data)
   
   return(se)
+}
+
+makeSummarizedExperiment <- function(assay, row_data, col_data, assay_name){
+  
+  #Make dfs
+  row_df = as.data.frame(row_data)
+  rownames(row_df) = row_data$phenotype_id
+  
+  col_df = as.data.frame(col_data)
+  rownames(col_df) = col_data$sample_id
+  
+  #Make assay list
+  assay_list = list()
+  assay_list[[assay_name]] = assay
+  
+  #Make a summarizedExperiment object
+  se = SummarizedExperiment::SummarizedExperiment(
+    assays = assay_list, 
+    colData = col_df, 
+    rowData = row_df)
 }
 
 normaliseSE_cqn <- function(se, assay_name = "counts"){
@@ -230,5 +250,56 @@ convertSEtoQTLtools <- function(se, assay_name = "cqn"){
     dplyr::arrange()
   
   return(res)
+}
+
+constructTxreviseRowData <- function(phenotype_ids, transcript_meta){
+  
+  #Split phenotype ids into components
+  event_metadata = dplyr::data_frame(phenotype_id = phenotype_ids) %>%
+    tidyr::separate(phenotype_id, c("gene_id", "txrevise_grp", "txrevise_pos", "transcript_id"), sep = "\\.", remove = FALSE) %>%
+    dplyr::mutate(group_id = paste(gene_id, txrevise_pos, sep = "."), quant_id = paste(gene_id, txrevise_grp, txrevise_pos, sep = ".")) %>%
+    dplyr::select(phenotype_id, quant_id, group_id, gene_id)
+  
+  #Extract gene metadata
+  gene_data = dplyr::select(transcript_meta, gene_id, chromosome, gene_start, gene_end, strand, 
+                            gene_name, gene_type, gene_gc_content, gene_version) %>% 
+    dplyr::distinct() %>%
+    dplyr::mutate(phenotype_pos = as.integer(ceiling((gene_end + gene_start)/2))) %>%
+    as.data.frame()
+  
+  row_data = dplyr::left_join(event_metadata, gene_data, by = "gene_id")
+  return(row_data)
+}
+
+normaliseSE_ratios <- function(se, assay_name = "tpms"){
+  
+  #Extract rowData and check for required columns
+  row_data = SummarizedExperiment::rowData(se)
+  assertthat::assert_that(assertthat::has_name(row_data, "phenotype_id"))
+  assertthat::assert_that(assertthat::has_name(row_data, "quant_id"))
+  
+  #Extract metadata
+  tx_map = row_data %>%
+    as.data.frame() %>%
+    dplyr::as_tibble() %>%
+    dplyr::transmute(transcript_id = phenotype_id, gene_id = quant_id)
+  
+  #Extract assays
+  assay_list = SummarizedExperiment::assays(se)
+  assay_matrix = assay_list[[assay_name]]
+  
+  #Calculate transcript ratios
+  transcript_ratios = calculateTranscriptRatios(assay_matrix, tx_map) %>%
+    replaceNAsWithRowMeans()
+  
+  #Update assays
+  assay_list[["usage"]] = transcript_ratios
+  
+  #Make ab update se object
+  se = SummarizedExperiment::SummarizedExperiment(
+    assays = assay_list, 
+    colData = SummarizedExperiment::colData(se), 
+    rowData = row_data)
+  return(se)
 }
 
