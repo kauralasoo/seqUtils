@@ -4,8 +4,8 @@
 \alias{loadBroadPeaks}
 \title{Import broadPeak files into a list of GRanges objects.}
 \usage{
-loadBroadPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.broadPeak",
-  sub_dir = TRUE)
+loadBroadPeaks(sample_dir, sample_names,
+  peaks_suffix = "_peaks.broadPeak", sub_dir = TRUE)
 }
 \arguments{
 \item{sample_dir}{Path to the directory containing the broadPeak files.}

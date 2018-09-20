@@ -242,6 +242,7 @@ convertSEtoQTLtools <- function(se, assay_name = "cqn"){
   #Exptract phenotype and rename columns according to genotype id
   assay = assays(se)[[assay_name]]
   colnames(assay) = se$genotype_id
+  assay = round(assay, 3) #Round to three digits
   
   #Make QTLtools phenotype table
   res = dplyr::mutate(as.data.frame(assay), phenotype_id = rownames(assay)) %>%
@@ -309,7 +310,7 @@ normaliseSE_ratios <- function(se, assay_name = "tpms"){
 #' @param se SummarizedExperiment object
 #' @param assay_name Name of the assay to be normalised in the se object
 #'
-#' @return
+#' @return SummarizedExperiment object with quantile-normalised data in the qnorm assay
 #' @export
 normaliseSE_quantile <- function(se, assay_name = "usage"){
   

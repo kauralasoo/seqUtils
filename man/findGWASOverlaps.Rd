@@ -4,8 +4,8 @@
 \alias{findGWASOverlaps}
 \title{Find GWAS variants that are in high LD with QTL variants}
 \usage{
-findGWASOverlaps(gene_snp_pairs, gwas_catalog, vcf_file, max_distance = 1e+06,
-  min_r2 = 0.6)
+findGWASOverlaps(gene_snp_pairs, gwas_catalog, vcf_file,
+  max_distance = 1e+06, min_r2 = 0.6)
 }
 \arguments{
 \item{gene_snp_pairs}{QTL SNP and variant pairs (required columns: gene_id, snp_id)}

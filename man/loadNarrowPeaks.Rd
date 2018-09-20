@@ -4,8 +4,8 @@
 \alias{loadNarrowPeaks}
 \title{Import narrowPeak files into a list of GRanges objects.}
 \usage{
-loadNarrowPeaks(sample_dir, sample_names, peaks_suffix = "_peaks.narrowPeak",
-  sub_dir = TRUE)
+loadNarrowPeaks(sample_dir, sample_names,
+  peaks_suffix = "_peaks.narrowPeak", sub_dir = TRUE)
 }
 \arguments{
 \item{sample_dir}{Path to the directory containing the narroPeak files.}

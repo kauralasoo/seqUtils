@@ -1,3 +1,26 @@
+#' Save a list of matrices into a suitable format for FastQTL
+#'
+#' Works with expression and covariates matrices.
+#' 
+#' @param data_list list of matrices
+#' @param output_dir relative path to the output dir
+#' @param file_suffix suffix added to each file after their name in the list.
+#' @return None
+#' @author Kaur Alasoo
+#' @export 
+saveQTLToolsMatrices <- function(data_list, output_dir, file_suffix = "bed", col_names = TRUE){
+  #Save data for FastQTL to disk
+  
+  #Save each matrix as a separate  txt file
+  for (sn in names(data_list)){
+    file_path = file.path(output_dir, paste(sn, file_suffix, sep = "."))
+    print(file_path)
+    write.table(data_list[[sn]], file_path, sep = "\t", quote = FALSE, row.names = FALSE, col.names = col_names)
+  }
+}
+
+
+
 #' Construct gene position data.frame suitable for QTLtools
 #' 
 #' @param gene_metadata Gene metadata data frame from expression list (columns: chr, start, end, gene_id, transcript_id, strand)

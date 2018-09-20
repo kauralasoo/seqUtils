@@ -4,8 +4,8 @@
 \alias{quantifyMotifDisruption}
 \title{Estimate how much PWM binding score is altered by the SNP}
 \usage{
-quantifyMotifDisruption(pwm, peak_id, snp_id, peak_metadata, peak_sequences,
-  snp_metadata, window_size = 25)
+quantifyMotifDisruption(pwm, peak_id, snp_id, peak_metadata,
+  peak_sequences, snp_metadata, window_size = 25)
 }
 \arguments{
 \item{pwm}{Position weight matrix in TFBSTools format}

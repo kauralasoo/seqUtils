@@ -4,8 +4,8 @@
 \alias{testInteractionLme4}
 \title{Test for interaction between genotype and condition using ANOVA and lme4}
 \usage{
-testInteractionLme4(gene_id, snp_id, trait_matrix, sample_metadata, vcf_file,
-  qtl_formula, interaction_formula, return_value = "ponly")
+testInteractionLme4(gene_id, snp_id, trait_matrix, sample_metadata,
+  vcf_file, qtl_formula, interaction_formula, return_value = "ponly")
 }
 \arguments{
 \item{gene_id}{Tested gene id}

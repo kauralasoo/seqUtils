@@ -9,4 +9,4 @@ License: What license is it under?
 Imports:
     tidyr
 LazyData: true
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0

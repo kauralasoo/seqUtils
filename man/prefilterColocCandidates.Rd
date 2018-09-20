@@ -4,7 +4,7 @@
 \alias{prefilterColocCandidates}
 \title{Perform a quick pre-filtering between QTLs and GWAS hits to reduce the number of coloc tests}
 \usage{
-prefilterColocCandidates(qtl_min_pvalues, gwas_prefix, GRCh37_variants,
+prefilterColocCandidates(qtl_min_pvalues, gwas_prefix, gwas_variant_info,
   fdr_thresh = 0.1, overlap_dist = 1e+05, gwas_thresh = 1e-05)
 }
 \arguments{
@@ -13,7 +13,7 @@ gene_id, snp_id and p_fdr and should not contain other columns.}
 
 \item{gwas_prefix}{Prefix of the GWAS summarystats file}
 
-\item{GRCh37_variants}{QTL variant information in GWAS coordinates.}
+\item{gwas_variant_info}{QTL variant information in GWAS coordinates.}
 
 \item{fdr_thresh}{Minimal QTL FDR threshold}
 

@@ -4,8 +4,8 @@
 \alias{testThreewayInteraction}
 \title{Test for threeway interactions between two features, genotype and environment.}
 \usage{
-testThreewayInteraction(feature_pairs, trait_matrix, sample_metadata, vcf_file,
-  model0, model1, p_only = TRUE)
+testThreewayInteraction(feature_pairs, trait_matrix, sample_metadata,
+  vcf_file, model0, model1, p_only = TRUE)
 }
 \arguments{
 \item{feature_pairs}{data frame with master_id, dependent_id and snp_id}

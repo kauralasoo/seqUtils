@@ -4,8 +4,8 @@
 \alias{makeMultiplePlots}
 \title{Make a list of plotEQTL plots.}
 \usage{
-makeMultiplePlots(snps_df, expression_matrix, genotype_matrix, sample_metadata,
-  gene_metadata)
+makeMultiplePlots(snps_df, expression_matrix, genotype_matrix,
+  sample_metadata, gene_metadata)
 }
 \arguments{
 \item{snps_df}{Data frame with at least two columns (gene_id, snp_id) corresponding to snps and genes to be plotted.}
